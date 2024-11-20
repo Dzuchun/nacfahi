@@ -23,4 +23,4 @@ jobs:
         run: cargo install typos-cli
 
       - name: Check spelling of source code
-        run: typos ./src/*.rs README.md
+        run: typos ./nacfahi/src/*.rs ./nacfahi-derive/src/*.rs ./*.md
