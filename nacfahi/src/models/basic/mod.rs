@@ -6,8 +6,10 @@ mod exponent;
 mod gaussian;
 #[doc(hidden)]
 mod linear;
+mod polynomial;
 
 pub use constant::*;
 pub use exponent::*;
 pub use gaussian::*;
 pub use linear::*;
+pub use polynomial::*;
