@@ -242,8 +242,8 @@ macro_rules! fit {
 ///
 /// P.S.: in case type bounds look terrifying to you - don't worry, they are worse than you can imagine. See examples in documentation for guiding (they are tested on build, ensuring their validity).
 #[must_use = "Minimization report is really important to check if approximation happened at all"]
-pub fn fit<Scalar, Entity, X, Y>(
-    model: Entity,
+pub fn fit<Scalar, Model, X, Y>(
+    model: Model,
     x: X,
     y: Y,
     minimizer: impl Borrow<LevenbergMarquardt<Scalar>>,
@@ -251,37 +251,36 @@ pub fn fit<Scalar, Entity, X, Y>(
 ) -> MinimizationReport<Scalar>
 where
     Scalar: ComplexField + RealField + Float + Copy,
-    Entity: FitModel<Scalar>,
-    Entity::ParamCount: Conv<ArrLen = Entity::ParamCount> + Sub<typenum::U1>,
+    Model: FitModel<Scalar>,
+    Model::ParamCount: Conv<ArrLen = Model::ParamCount> + Sub<typenum::U1>,
     X: AsMatrixView<Scalar>,
     Y: AsMatrixView<Scalar, Points = X::Points>,
 
-    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<<Entity::ParamCount as Conv>::Nalg>,
+    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<<Model::ParamCount as Conv>::Nalg>,
     nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<X::Points>,
     nalgebra::DefaultAllocator:
-        nalgebra::allocator::Allocator<X::Points, <Entity::ParamCount as Conv>::Nalg>,
+        nalgebra::allocator::Allocator<X::Points, <Model::ParamCount as Conv>::Nalg>,
 
-    X::Points: DimMax<<Entity::ParamCount as Conv>::Nalg>
-        + DimMin<<Entity::ParamCount as Conv>::Nalg>
+    X::Points: DimMax<<Model::ParamCount as Conv>::Nalg>
+        + DimMin<<Model::ParamCount as Conv>::Nalg>
         + CreateProblem<Scalar, Nalg = X::Points>,
-    <Entity::ParamCount as Conv>::Nalg: DimMax<X::Points> + DimMin<X::Points>,
+    <Model::ParamCount as Conv>::Nalg: DimMax<X::Points> + DimMin<X::Points>,
     nalgebra::DefaultAllocator: nalgebra::allocator::Reallocator<
         Scalar,
         X::Points,
-        <Entity::ParamCount as Conv>::Nalg,
-        DimMaximum<X::Points, <Entity::ParamCount as Conv>::Nalg>,
-        <Entity::ParamCount as Conv>::Nalg,
+        <Model::ParamCount as Conv>::Nalg,
+        DimMaximum<X::Points, <Model::ParamCount as Conv>::Nalg>,
+        <Model::ParamCount as Conv>::Nalg,
     >,
 {
     let x = <X as AsMatrixView<_>>::convert(&x);
     let y = <Y as AsMatrixView<_>>::convert(&y);
-    let problem = <X::Points as CreateProblem<Scalar>>::create::<'_, Entity::ParamCount, _>(
+    let problem = <X::Points as CreateProblem<Scalar>>::create::<'_, Model::ParamCount, _>(
         x, y, model, weights,
     );
-    let (_, report) = LevenbergMarquardt::minimize::<
-        <Entity::ParamCount as Conv>::Nalg,
-        X::Points,
-        _,
-    >(minimizer.borrow(), problem);
+    let (_, report) = LevenbergMarquardt::minimize::<<Model::ParamCount as Conv>::Nalg, X::Points, _>(
+        minimizer.borrow(),
+        problem,
+    );
     report
 }
