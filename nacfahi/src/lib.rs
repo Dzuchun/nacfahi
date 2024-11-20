@@ -194,6 +194,7 @@ impl<Scalar> CreateProblem<Scalar> for Dyn {
 
 #[macro_export]
 #[cfg(doc)]
+#[doc = include_str!("../doc/fit_macro.md")]
 macro_rules! fit {
     (
         $model:expr,
