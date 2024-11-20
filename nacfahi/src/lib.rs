@@ -18,6 +18,16 @@ pub use num_traits::One;
 
 use num_traits::Float;
 
+/// Re-export. See [`LevenbergMarquardt`](https://docs.rs/levenberg-marquardt/latest/levenberg_marquardt/struct.LevenbergMarquardt.html)
+///
+pub use levenberg_marquardt::LevenbergMarquardt;
+/// Re-export. See [`MinimizationReport`](https://docs.rs/levenberg-marquardt/latest/levenberg_marquardt/struct.MinimizationReport.html)
+///
+pub use levenberg_marquardt::MinimizationReport;
+/// Re-export. See [`TerminationReason`](https://docs.rs/levenberg-marquardt/latest/levenberg_marquardt/enum.TerminationReason.html)
+///
+pub use levenberg_marquardt::TerminationReason;
+
 /// Fitting models
 pub mod models;
 
