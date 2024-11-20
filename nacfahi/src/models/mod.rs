@@ -39,3 +39,35 @@ pub trait FitModel<S> {
     /// **Hint**: return type allows you to return core Rust array, as long as it's size is correct.
     fn get_params(&self) -> impl Into<GenericArray<S, Self::ParamCount>>;
 }
+
+impl<Scalar, Model> FitModel<Scalar> for &'_ mut Model
+where
+    Model: FitModel<Scalar>,
+{
+    type ParamCount = Model::ParamCount;
+
+    #[inline]
+    fn evaluate(&self, x: &Scalar) -> Scalar {
+        let s: &Model = self;
+        Model::evaluate(s, x)
+    }
+
+    #[inline]
+    fn jacobian(&self, x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+        let s: &Model = self;
+        Model::jacobian(s, x)
+    }
+
+    #[inline]
+    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+        let s: &mut Model = self;
+        Model::set_params(s, new_params);
+    }
+
+    #[inline]
+    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+        let s: &Model = self;
+        Model::get_params(s)
+    }
+}
+
