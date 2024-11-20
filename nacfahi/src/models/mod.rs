@@ -93,6 +93,19 @@ where
     }
 }
 
+impl<Scalar, Model: FitModelXDeriv<Scalar>> FitModelXDeriv<Scalar> for &'_ mut Model {
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        <Model as FitModelXDeriv<Scalar>>::deriv_x(self, x)
+    }
+}
+
+impl<Scalar, Model: FitModelXDeriv<Scalar>> FitModelXDeriv<Scalar> for &'_ Model {
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        <Model as FitModelXDeriv<Scalar>>::deriv_x(self, x)
+    }
+}
 #[inline]
 #[doc(hidden)]
 fn flatten<T, R, C>(arr: GenericArray<GenericArray<T, R>, C>) -> GenericArray<T, Prod<R, C>>
@@ -162,5 +175,16 @@ where
         let jacobian_generic_arr: GenericArray<GenericArray<Scalar, Model::ParamCount>, TNum<N>> =
             GenericArray::from_array(self.each_ref().map(|entity| entity.get_params().into()));
         flatten(jacobian_generic_arr)
+    }
+}
+
+impl<const N: usize, Scalar, Model> FitModelXDeriv<Scalar> for [Model; N]
+where
+    Scalar: Sum,
+    Model: FitModelXDeriv<Scalar>,
+{
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        self.iter().map(|m| m.deriv_x(x)).sum()
     }
 }
