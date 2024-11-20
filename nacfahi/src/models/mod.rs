@@ -11,6 +11,10 @@ pub mod basic;
 
 /// Utility models for composing more complex models.
 pub mod utility;
+
+#[doc = include_str!("../../doc/derive_sum.md")]
+pub use nacfahi_derive::FitModelSum;
+
 #[doc(hidden)]
 type TNum<const N: usize> = <typenum::Const<N> as ToUInt>::Output;
 

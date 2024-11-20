@@ -7,6 +7,7 @@ edition = "2021"
 generic-array = "1.1.0"
 num-traits = { version = "0.2.19", default-features = false, features = ["libm"] }
 typenum = { version = "1.17.0", features = ["no_std", "const-generics"] }
+nacfahi-derive = { path = "../nacfahi-derive" }
 
 [lints]
 workspace = true
