@@ -9,4 +9,3 @@ mod fit_model;
 pub fn derive_fit_entity(input: TokenStream) -> TokenStream {
     fit_model::derive_sum(input)
 }
-
