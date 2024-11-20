@@ -62,6 +62,19 @@ pub trait FitModelXDeriv<Scalar> {
     fn deriv_x(&self, x: &Scalar) -> Scalar;
 }
 
+/// Defines models having a corresponding error-defining type.
+///
+/// This trait is meant to extend [`FitModel`] to allow usage of [`macro@crate::fit_stat!`].
+pub trait FitModelErrors<Scalar>: FitModel<Scalar> {
+    /// Type of the error model
+    ///
+    /// Most of the time, this can be just `Self`.
+    type OwnedModel;
+
+    /// Creates new model representing errors from the error array
+    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel;
+}
+
 impl<Scalar, Model> FitModel<Scalar> for &'_ mut Model
 where
     Model: FitModel<Scalar>,
@@ -106,6 +119,16 @@ impl<Scalar, Model: FitModelXDeriv<Scalar>> FitModelXDeriv<Scalar> for &'_ Model
         <Model as FitModelXDeriv<Scalar>>::deriv_x(self, x)
     }
 }
+
+impl<Scalar, Model: FitModelErrors<Scalar>> FitModelErrors<Scalar> for &'_ mut Model {
+    type OwnedModel = Model::OwnedModel;
+
+    #[inline]
+    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+        <Model as FitModelErrors<Scalar>>::with_errors(self, errors)
+    }
+}
+
 #[inline]
 #[doc(hidden)]
 fn flatten<T, R, C>(arr: GenericArray<GenericArray<T, R>, C>) -> GenericArray<T, Prod<R, C>>
@@ -186,5 +209,25 @@ where
     #[inline]
     fn deriv_x(&self, x: &Scalar) -> Scalar {
         self.iter().map(|m| m.deriv_x(x)).sum()
+    }
+}
+
+impl<const N: usize, Scalar, Model> FitModelErrors<Scalar> for [Model; N]
+where
+    Scalar: Sum,
+    typenum::Const<N>: ToUInt,
+    TNum<N>: ArrayLength,
+    Self: FitModel<Scalar>,
+    Model: FitModelErrors<Scalar>,
+    Model::ParamCount: Mul<TNum<N>, Output = Self::ParamCount>,
+    Self::ParamCount: Div<Model::ParamCount, Output = TNum<N>>,
+{
+    type OwnedModel = [Model::OwnedModel; N];
+
+    #[inline]
+    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+        let self_array = GenericArray::from_array(self.each_ref());
+        let unflat = unflatten::<_, _, Model::ParamCount>(errors);
+        self_array.zip(unflat, Model::with_errors).into_array()
     }
 }
