@@ -1,1 +1,6 @@
 /target
+
+# act-related
+act_event.json
+.actrc
+
