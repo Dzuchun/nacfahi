@@ -1,0 +1,67 @@
+# source: https://gist.github.com/antonengelhardt/f44815b91946440a2ac2c60976638686
+name: Documentation
+on:
+  push:
+    branches:
+      - master
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install rustup
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Generate documentation
+        uses: actions-rs/cargo@v1
+        env:
+          RUSTDOCFLAGS: --html-in-header nacfahi/katex.html
+        with:
+            command: doc
+            args: --no-deps --all-features
+
+      - name: Fix file permissions
+        shell: sh
+        run: |
+            chmod -c -R +rX "target/doc" |
+            while read line; do
+                echo "::warning title=Invalid file permissions automatically fixed::$line"
+            done
+      - name: Generate index.html file
+        run: |
+            echo "<meta http-equiv=refresh content=0;url=wasm_oidc_plugin/index.html>" > target/doc/index.html
+
+      - name: Upload documentation
+        if: ${{ !env.ACT }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+            path: ./target/doc
+
+
+  deploy_github_pages:
+    if: ${{ !github.event.act }} # skip during local actions testing
+    needs: build_docs
+    runs-on: ubuntu-latest
+
+    permissions:
+        pages: write
+        id-token: write
+    environment:
+        name: github-pages
+        url: ${{ steps.pages.outputs.page_url }}
+
+    steps:
+
+      - name: Deploy documentation
+        id: pages
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,26 @@
+# source: https://github.com/crate-ci/typos/blob/master/docs/github-action.md
+name: Spellcheck
+on:
+  push: 
+    branches:
+      - master
+
+jobs:
+  spellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install rustup
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: cargo
+
+      - name: Install typos
+        run: cargo install typos-cli
+
+      - name: Check spelling of source code
+        run: typos ./src/*.rs README.md

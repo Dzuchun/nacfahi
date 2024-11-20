@@ -1,0 +1,44 @@
+# initial source: https://gist.github.com/domnikl/ccb8d0b82056fbe5cf7f4f145ac7f44b
+name: Build and Test
+
+on:
+  push:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install rustup
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          components: cargo,rustfmt,clippy
+
+      - name: install check-all-fetures
+        run: cargo install cargo-all-features
+
+      - name: cargo check
+        env:
+          RUSTFLAGS: -D warnings
+        run: cargo check-all-features
+
+      - name: rustfmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --all --tests -- -D warnings
+
+      - name: cargo test
+        run: cargo test-all-features
+
+      - name: cargo test on release
+        run: cargo test-all-features --release
+
