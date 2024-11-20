@@ -28,7 +28,7 @@ jobs:
           RUSTDOCFLAGS: --html-in-header nacfahi/katex.html
         with:
             command: doc
-            args: --no-deps --all-features
+            args: --no-deps --all-features --document-private-items
 
       - name: Fix file permissions
         shell: sh
