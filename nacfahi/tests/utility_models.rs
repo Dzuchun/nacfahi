@@ -5,8 +5,8 @@ use std::ops::RangeTo;
 
 use approx::{assert_ulps_eq, assert_ulps_ne};
 use models::{
-    basic::{Exponent, Gaussian},
-    utility::{model_map, CompositionExt, LnMap, Ranged},
+    basic::{Exponent, Gaussian, Linear},
+    utility::{model_map, CompositionExt, Fixed, LnMap, Ranged},
     FitModel,
 };
 use nacfahi::*;
@@ -128,4 +128,15 @@ fn gaussian_over_exp() {
     assert_ulps_eq!(composed.outer.a, expected_s);
     assert_ulps_eq!(composed.outer.s, expected_w);
     assert_ulps_eq!(composed.outer.s, expected_x_c);
+}
+
+#[test]
+fn fixed() {
+    // some model
+    let model = Linear { a: 0.0, b: 0.0 };
+
+    // make it fixed
+    let fixed = Fixed(model);
+
+    // fit!(fixed, [1.0, 2.0, 3.0], [-1.0, 5.0, -6.0]); // <-- does not compile!
 }
