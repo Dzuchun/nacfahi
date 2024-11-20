@@ -207,6 +207,7 @@ macro_rules! fit {
 
 #[macro_export]
 #[cfg(not(doc))]
+#[doc = include_str!("../doc/fit_macro.md")]
 macro_rules! fit {
     ($model:expr, $x:expr, $y:expr $(, $par_name:ident = $par_value:expr) *) => {{
         let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
