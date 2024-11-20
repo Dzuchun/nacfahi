@@ -1,3 +1,6 @@
+![CI status](https://github.com/Dzuchun/nacfahi/actions/workflows/build.yml/badge.svg)
+[![Documentation status](https://github.com/Dzuchun/nacfahi/actions/workflows/docs.yml/badge.svg)][docs]
+
 This is my take on "convenient interface" for a brilliant [`levenberg_marquardt`] crate, aiming to be versatile, convenient and easy-to-understand.
 
 Before reading further, consider giving [`levenberg_marquardt`] itself a look - it's interface is quite abstract, and you might come up with a more efficient use pattern for your problem.
@@ -230,3 +233,4 @@ Actual intended name is `nacfa'i`, which is a lojban predicate for ["x1 **is sol
 [`nalgebra`]: https://docs.rs/nalgebra/latest/nalgebra/
 [`generic_array`]: https://docs.rs/generic-array/latest/generic_array/
 [1]: https://la-lojban.github.io/sutysisku/lojban/index.html#seskari=fanva&sisku=nacfa%27i&bangu=en&versio=masno
+[docs]: https://dzuchun.github.io/nacfahi/nacfahi/index.html
