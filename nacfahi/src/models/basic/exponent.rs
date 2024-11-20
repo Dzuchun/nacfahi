@@ -1,8 +1,9 @@
 use core::ops::Mul;
 
+use generic_array::GenericArray;
 use num_traits::{FloatConst, Pow};
 
-use crate::models::{FitModel, FitModelXDeriv};
+use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
 
 /// Exponent model $a \cdot \exp(b \cdot x )$
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -56,5 +57,18 @@ impl<Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + Float
         // y = a * exp(bx)
         // - derivative over x is ab * exp(bx)
         self.a.clone() * self.b.clone() * Scalar::E().pow(self.b.clone() * x.clone())
+    }
+}
+
+impl<Scalar> FitModelErrors<Scalar> for Exponent<Scalar>
+where
+    Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + FloatConst,
+{
+    type OwnedModel = Self;
+
+    #[inline]
+    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+        let [a, b] = errors.into_array();
+        Exponent { a, b }
     }
 }

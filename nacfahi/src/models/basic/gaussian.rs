@@ -3,7 +3,7 @@ use typenum::{U2, U3};
 
 use generic_array::GenericArray;
 
-use crate::models::{FitModel, FitModelXDeriv};
+use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
 
 #[inline]
 #[doc(hidden)]
@@ -148,6 +148,18 @@ impl<Scalar: Float + FloatConst> FitModelXDeriv<Scalar> for Gaussian<Scalar> {
     }
 }
 
+impl<Scalar> FitModelErrors<Scalar> for Gaussian<Scalar>
+where
+    Gaussian<Scalar>: FitModel<Scalar, ParamCount = U3>,
+{
+    type OwnedModel = Gaussian<Scalar>;
+
+    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+        let [x_c, s, a] = errors.into_array();
+        Gaussian { a, s, x_c }
+    }
+}
+
 /// Same as [`Gaussian`], but with fixed $\sigma$ (i.e. it's not being fitted for, it will be left unchanged).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GaussianS<Scalar> {
@@ -201,5 +213,27 @@ impl<Scalar: Float + FloatConst> FitModelXDeriv<Scalar> for GaussianS<Scalar> {
     fn deriv_x(&self, x: &Scalar) -> Scalar {
         // derivatives over x and over x_c are the same, they are symmetrical
         gaussian_deriv_x_c(*x, self.x_c, self.s, self.a)
+    }
+}
+
+///
+#[derive(Debug)]
+pub struct GaussianSErr<Scalar> {
+    ///
+    pub a_err: Scalar,
+    ///
+    pub x_c_err: Scalar,
+}
+
+impl<Scalar> FitModelErrors<Scalar> for GaussianS<Scalar>
+where
+    GaussianS<Scalar>: FitModel<Scalar, ParamCount = U2>,
+{
+    type OwnedModel = GaussianSErr<Scalar>;
+
+    #[inline]
+    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+        let [a_err, x_c_err] = errors.into_array();
+        GaussianSErr { a_err, x_c_err }
     }
 }

@@ -3,7 +3,7 @@ use core::ops::{Add, Mul};
 use generic_array::{sequence::GenericSequence, ArrayLength, GenericArray};
 use num_traits::{One, Zero};
 
-use crate::models::{FitModel, FitModelXDeriv};
+use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
 
 /// Polynomial model, $\sum\limits_{i=0}^{order-1} a_{i} \cdot x^{i}$.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -65,5 +65,19 @@ impl<
             pow_i = pow_i + Scalar::one();
         }
         res
+    }
+}
+
+impl<const ORDER: usize, Scalar> FitModelErrors<Scalar> for Polynomial<ORDER, Scalar>
+where
+    typenum::Const<ORDER>: ArrayLength,
+    Self: FitModel<Scalar, ParamCount = typenum::Const<ORDER>>,
+{
+    type OwnedModel = Polynomial<ORDER, Scalar>;
+
+    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+        Polynomial {
+            params: errors.into_array(),
+        }
     }
 }

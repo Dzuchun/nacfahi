@@ -5,7 +5,7 @@ use num_traits::One;
 
 use typenum::U2;
 
-use crate::models::{FitModel, FitModelXDeriv};
+use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
 
 /// Line model $a \cdot x + b$
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -53,5 +53,18 @@ impl<Scalar: Clone> FitModelXDeriv<Scalar> for Linear<Scalar> {
         // y = a * x + b
         // - derivative over x is a
         self.a.clone()
+    }
+}
+
+impl<Scalar> FitModelErrors<Scalar> for Linear<Scalar>
+where
+    Scalar: Clone + Add<Output = Scalar> + Mul<Output = Scalar> + One,
+{
+    type OwnedModel = Linear<Scalar>;
+
+    #[inline]
+    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+        let [a, b] = errors.into_array();
+        Linear { a, b }
     }
 }
