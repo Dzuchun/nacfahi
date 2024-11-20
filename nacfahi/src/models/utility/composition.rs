@@ -76,3 +76,21 @@ where
     }
 }
 
+/// Convenience trait to construct [`Composition`]. Alternatively, just construct it manually.
+pub trait CompositionExt<Scalar>: Sized {
+    /// Applies second model on top of current one.
+    fn compose<Outer: FitModel<Scalar> + FitModelXDeriv<Scalar>>(
+        self,
+        outer: Outer,
+    ) -> Composition<Self, Outer>;
+}
+
+impl<Scalar, Inner: FitModel<Scalar>> CompositionExt<Scalar> for Inner {
+    #[inline]
+    fn compose<Outer: FitModel<Scalar> + FitModelXDeriv<Scalar>>(
+        self,
+        outer: Outer,
+    ) -> Composition<Self, Outer> {
+        Composition { inner: self, outer }
+    }
+}
