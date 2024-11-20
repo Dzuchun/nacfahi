@@ -2,9 +2,13 @@
 name = "nacfahi"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies]
+generic-array = "1.1.0"
+typenum = { version = "1.17.0", features = ["no_std", "const-generics"] }
+
 [lints]
 workspace = true
-
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "katex.html" ]
