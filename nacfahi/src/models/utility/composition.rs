@@ -7,7 +7,7 @@ use generic_array::{
 };
 use typenum::Sum;
 
-use crate::models::FitModel;
+use crate::models::{FitModel, FitModelXDeriv};
 
 /// A model equal to consequent application of `inner` and `outer`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -62,3 +62,17 @@ where
         )
     }
 }
+
+impl<Scalar: Mul<Output = Scalar>, Inner, Outer> FitModelXDeriv<Scalar>
+    for Composition<Inner, Outer>
+where
+    Inner: FitModel<Scalar> + FitModelXDeriv<Scalar>,
+    Outer: FitModelXDeriv<Scalar>,
+{
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        let y = self.inner.evaluate(x);
+        self.inner.deriv_x(x) * self.outer.deriv_x(&y)
+    }
+}
+

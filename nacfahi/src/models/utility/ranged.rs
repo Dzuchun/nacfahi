@@ -3,7 +3,7 @@ use core::ops::RangeBounds;
 use generic_array::{sequence::GenericSequence, GenericArray};
 use num_traits::Zero;
 
-use crate::models::FitModel;
+use crate::models::{FitModel, FitModelXDeriv};
 
 /// Model filtering the `inner` model to a certain argument `range`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -51,5 +51,21 @@ where
     #[inline]
     fn get_params(&self) -> impl Into<generic_array::GenericArray<Scalar, Self::ParamCount>> {
         self.inner.get_params()
+    }
+}
+
+impl<Scalar, Range, Inner> FitModelXDeriv<Scalar> for Ranged<Range, Inner>
+where
+    Scalar: PartialOrd + Zero,
+    Range: RangeBounds<Scalar>,
+    Inner: FitModel<Scalar> + FitModelXDeriv<Scalar>,
+{
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        if self.range.contains(x) {
+            self.inner.deriv_x(x)
+        } else {
+            Scalar::zero()
+        }
     }
 }

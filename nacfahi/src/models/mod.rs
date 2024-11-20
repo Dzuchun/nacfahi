@@ -50,6 +50,14 @@ pub trait FitModel<S> {
     fn get_params(&self) -> impl Into<GenericArray<S, Self::ParamCount>>;
 }
 
+/// Defines model having derivative over the `x` variable.
+///
+/// This trait is meant to extend [`FitModel`] to allow usage of [`Composition`](utility::Composition) model, as it requires derivative over `x` for outer model.
+pub trait FitModelXDeriv<Scalar> {
+    /// Returns derivative over `x` at supplied `x` value.
+    fn deriv_x(&self, x: &Scalar) -> Scalar;
+}
+
 impl<Scalar, Model> FitModel<Scalar> for &'_ mut Model
 where
     Model: FitModel<Scalar>,

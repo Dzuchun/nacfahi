@@ -255,3 +255,18 @@ where
         self.inner.get_params()
     }
 }
+
+impl<Scalar, Inner, Value, Derivative> FitModelXDeriv<Scalar> for ModelMap<Inner, Value, Derivative>
+where
+    Scalar: Mul<Output = Scalar>,
+    Inner: FitModel<Scalar> + FitModelXDeriv<Scalar>,
+    Derivative: Fn(&Scalar) -> Scalar,
+{
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        let y = self.inner.evaluate(x);
+        let y_x = self.inner.deriv_x(x);
+        let z_y = (self.derivative)(&y);
+        z_y * y_x
+    }
+}

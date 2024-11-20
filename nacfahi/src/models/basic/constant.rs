@@ -1,4 +1,4 @@
-use crate::models::FitModel;
+use crate::models::{FitModel, FitModelXDeriv};
 use generic_array::GenericArray;
 use num_traits::{One, Zero};
 use typenum::U1;
@@ -32,5 +32,12 @@ impl<Scalar: Clone + One> FitModel<Scalar> for Constant<Scalar> {
     #[inline]
     fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
         [self.c.clone()]
+    }
+}
+
+impl<Scalar: Clone + Zero + One> FitModelXDeriv<Scalar> for Constant<Scalar> {
+    #[inline]
+    fn deriv_x(&self, _: &Scalar) -> Scalar {
+        Scalar::zero()
     }
 }

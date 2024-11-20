@@ -3,7 +3,7 @@ use core::ops::{Add, Mul};
 use generic_array::{sequence::GenericSequence, ArrayLength, GenericArray};
 use num_traits::{One, Zero};
 
-use crate::models::FitModel;
+use crate::models::{FitModel, FitModelXDeriv};
 
 /// Polynomial model, $\sum\limits_{i=0}^{order-1} a_{i} \cdot x^{i}$.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -47,5 +47,23 @@ where
 
     fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
         self.params.clone()
+    }
+}
+
+impl<
+        const ORDER: usize,
+        Scalar: Clone + Zero + One + Add<Output = Scalar> + Mul<Output = Scalar>,
+    > FitModelXDeriv<Scalar> for Polynomial<ORDER, Scalar>
+{
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        let mut res = Scalar::zero();
+        let mut pow = Scalar::one();
+        let mut pow_i = Scalar::one();
+        for _ in 1..ORDER {
+            res = res + pow_i.clone() * pow.clone();
+            pow = pow * x.clone();
+            pow_i = pow_i + Scalar::one();
+        }
+        res
     }
 }

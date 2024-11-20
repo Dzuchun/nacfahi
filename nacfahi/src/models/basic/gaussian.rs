@@ -3,7 +3,7 @@ use typenum::{U2, U3};
 
 use generic_array::GenericArray;
 
-use crate::models::FitModel;
+use crate::models::{FitModel, FitModelXDeriv};
 
 #[inline]
 #[doc(hidden)]
@@ -140,6 +140,14 @@ impl<Scalar: Float + FloatConst> FitModel<Scalar> for Gaussian<Scalar> {
     }
 }
 
+impl<Scalar: Float + FloatConst> FitModelXDeriv<Scalar> for Gaussian<Scalar> {
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        // derivatives over x and over x_c are the same, they are symmetrical
+        gaussian_deriv_x_c(*x, self.x_c, self.s, self.a)
+    }
+}
+
 /// Same as [`Gaussian`], but with fixed $\sigma$ (i.e. it's not being fitted for, it will be left unchanged).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GaussianS<Scalar> {
@@ -185,5 +193,13 @@ impl<Scalar: Float + FloatConst> FitModel<Scalar> for GaussianS<Scalar> {
     #[inline]
     fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
         [self.x_c, self.a]
+    }
+}
+
+impl<Scalar: Float + FloatConst> FitModelXDeriv<Scalar> for GaussianS<Scalar> {
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        // derivatives over x and over x_c are the same, they are symmetrical
+        gaussian_deriv_x_c(*x, self.x_c, self.s, self.a)
     }
 }

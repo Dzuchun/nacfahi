@@ -2,7 +2,7 @@ use core::ops::Mul;
 
 use num_traits::{FloatConst, Pow};
 
-use crate::models::FitModel;
+use crate::models::{FitModel, FitModelXDeriv};
 
 /// Exponent model $a \cdot \exp(b \cdot x )$
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -45,5 +45,16 @@ impl<Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + Float
     #[inline]
     fn get_params(&self) -> impl Into<generic_array::GenericArray<Scalar, Self::ParamCount>> {
         [self.a.clone(), self.b.clone()]
+    }
+}
+
+impl<Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + FloatConst>
+    FitModelXDeriv<Scalar> for Exponent<Scalar>
+{
+    #[inline]
+    fn deriv_x(&self, x: &Scalar) -> Scalar {
+        // y = a * exp(bx)
+        // - derivative over x is ab * exp(bx)
+        self.a.clone() * self.b.clone() * Scalar::E().pow(self.b.clone() * x.clone())
     }
 }
