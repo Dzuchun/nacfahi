@@ -8,6 +8,9 @@ use typenum::{Prod, Quot, ToUInt};
 
 /// Basic building blocks for the models.
 pub mod basic;
+
+/// Utility models for composing more complex models.
+pub mod utility;
 #[doc(hidden)]
 type TNum<const N: usize> = <typenum::Const<N> as ToUInt>::Output;
 
