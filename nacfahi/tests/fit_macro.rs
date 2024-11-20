@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 #[test]
 fn custom_lavmar() {
     use approx::assert_ulps_ne;

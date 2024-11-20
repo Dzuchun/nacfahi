@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use core::f64;
 use std::ops::RangeTo;
 

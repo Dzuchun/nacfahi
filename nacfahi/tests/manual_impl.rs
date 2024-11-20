@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use generic_array::sequence::{Concat, Split};
 use nacfahi::models::{
     basic::{Exponent, Gaussian, Linear},

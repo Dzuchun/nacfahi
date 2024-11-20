@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 #[test]
 fn array() {
     use approx::assert_ulps_eq;

@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use nacfahi::models::{
     basic::{Constant, Exponent, Gaussian, Linear},
     FitModel, FitModelSum,
