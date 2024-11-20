@@ -6,6 +6,8 @@ use core::{
 use generic_array::{functional::FunctionalSequence, ArrayLength, GenericArray};
 use typenum::{Prod, Quot, ToUInt};
 
+/// Basic building blocks for the models.
+pub mod basic;
 #[doc(hidden)]
 type TNum<const N: usize> = <typenum::Const<N> as ToUInt>::Output;
 
