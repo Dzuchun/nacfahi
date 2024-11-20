@@ -216,12 +216,14 @@ impl<Scalar: Float + FloatConst> FitModelXDeriv<Scalar> for GaussianS<Scalar> {
     }
 }
 
+/// Represents errors of [`GaussianS`]'s parameters.
 ///
+/// It's a separate type, since `s` parameter of [`GaussianS`] is not fitted for, and no error can be computed for it.
 #[derive(Debug)]
 pub struct GaussianSErr<Scalar> {
-    ///
+    /// Error for an area of the gaussian, $\sigma_{A}$
     pub a_err: Scalar,
-    ///
+    /// Error for a center of the gaussian, $\sigma_{x_{c}}$
     pub x_c_err: Scalar,
 }
 

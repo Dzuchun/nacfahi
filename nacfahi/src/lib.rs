@@ -5,13 +5,13 @@ use core::borrow::Borrow;
 use core::ops::Sub;
 
 use dyn_problem::DynOptimizationProblem;
-use models::FitModel;
+use models::{FitModel, FitModelErrors};
 
 use const_problem::ConstOptimizationProblem;
 use generic_array_storage::Conv;
 use levenberg_marquardt::LeastSquaresProblem;
-use nalgebra::Matrix;
 use nalgebra::{ComplexField, Dim, DimMax, DimMaximum, DimMin, Dyn, MatrixView, RealField};
+use nalgebra::{Matrix, OMatrix};
 
 /// Re-export, used by [`macro@fit!`].
 ///
@@ -283,4 +283,173 @@ where
         problem,
     );
     report
+}
+
+#[doc(hidden)]
+type ModelNalg<Scalar, Model> = <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg;
+
+/// Result of [`function@fit_stat`].
+#[derive(Debug)]
+pub struct FitStat<Scalar: RealField, Model: FitModel<Scalar> + FitModelErrors<Scalar>>
+where
+    <Model as FitModel<Scalar>>::ParamCount: Conv,
+    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<
+        <Model::ParamCount as Conv>::Nalg,
+        <Model::ParamCount as Conv>::Nalg,
+    >,
+{
+    /// Report resulted from the fit
+    pub report: MinimizationReport<Scalar>,
+    /// $\chi^{2}/\test{dof}$ criteria. Should be about 1 for correct fit.
+    pub reduced_chi2: Scalar,
+    /// Type defined by model, containing parameter errors.
+    ///
+    /// This will usually be the model type itself, but there may be exceptions.
+    pub errors: Model::OwnedModel,
+    /// A parameter covariance matrix. If you don't know what this is, you can safely ignore it.
+    pub covariance_matrix: OMatrix<Scalar, ModelNalg<Scalar, Model>, ModelNalg<Scalar, Model>>,
+}
+
+#[macro_export]
+#[cfg(doc)]
+#[doc = include_str!("../doc/fit_stat_macro.md")]
+macro_rules! fit_stat {
+    (
+        $model:expr,
+        $x:expr,
+        $y:expr
+        $(, weights = $wights:expr)?
+        $(, minimizer = $minimizer:expr)?
+    ) => { ... };
+}
+
+#[macro_export]
+#[cfg(not(doc))]
+#[doc = include_str!("../doc/fit_stat_macro.md")]
+macro_rules! fit_stat {
+    ($model:expr, $x:expr, $y:expr $(, $par_name:ident = $par_value:expr) *) => {{
+        let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
+        fn weights<Scalar: ::nacfahi::One>(x: Scalar, y: Scalar) -> Scalar {
+            Scalar::one()
+        }
+
+        let model = $model;
+        let x = $x;
+        let y = $y;
+        ::nacfahi::fit_stat!(@ $($par_name = $par_value),*; model = model, x = x, y = y, minimizer = minimizer, weights = weights)
+    }};
+
+    (@ minimizer = $new_minimizer:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
+        use ::core::borrow::Borrow;
+        let tmp = $new_minimizer;
+        $minimizer = tmp.borrow();
+        ::nacfahi::fit_stat!(@ $($par_name = $par_value),*; model = $model, x = $x, y = $y, minimizer = $minimizer, weights = $weights)
+    }};
+
+    (@ weights = $new_weights:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
+        let weights = $new_weights;
+        ::nacfahi::fit_stat!(@ $($par_name = $par_value),*; model = $model, x = $x, y = $y, minimizer = $minimizer, weights = weights)
+    }};
+
+    (@; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {
+        ::nacfahi::fit_stat($model, $x, $y, $minimizer, $weights)
+    };
+}
+
+/// Same as [`function@fit`], but outputs a bunch of other stuff alongside [`MinimizationReport`].
+///
+/// ### Outputs NaN
+///
+/// If there are more less or the same number of data points than parameters. In this case, $\chi^{2}/\text{dof}$ is undefined, and consequently - rest of the analysis.
+///
+/// ### Panics
+///
+/// - If data points count can't be converted to scalar type
+/// - If
+#[must_use = "Covariance matrix are the only point to call this function specifically"]
+pub fn fit_stat<Scalar, Model, X, Y>(
+    mut model: Model,
+    x: X,
+    y: Y,
+    minimizer: impl Borrow<LevenbergMarquardt<Scalar>>,
+    weights: impl Fn(Scalar, Scalar) -> Scalar,
+) -> FitStat<Scalar, Model>
+where
+    Scalar: ComplexField + RealField + Float + Copy,
+    Model: FitModel<Scalar> + FitModelErrors<Scalar>,
+    Model::ParamCount: Conv<ArrLen = Model::ParamCount> + Sub<typenum::U1>,
+    X: AsMatrixView<Scalar>,
+    Y: AsMatrixView<Scalar, Points = X::Points>,
+
+    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<<Model::ParamCount as Conv>::Nalg>,
+    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<X::Points>,
+    nalgebra::DefaultAllocator:
+        nalgebra::allocator::Allocator<X::Points, <Model::ParamCount as Conv>::Nalg>,
+    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<
+        <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
+        X::Points,
+    >,
+    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<
+        <Model::ParamCount as Conv>::Nalg,
+        <Model::ParamCount as Conv>::Nalg,
+    >,
+
+    X::Points: DimMax<<Model::ParamCount as Conv>::Nalg>
+        + DimMin<<Model::ParamCount as Conv>::Nalg>
+        + CreateProblem<Scalar, Nalg = X::Points>,
+    <Model::ParamCount as Conv>::Nalg: DimMax<X::Points> + DimMin<X::Points>,
+    nalgebra::DefaultAllocator: nalgebra::allocator::Reallocator<
+        Scalar,
+        X::Points,
+        <Model::ParamCount as Conv>::Nalg,
+        DimMaximum<X::Points, <Model::ParamCount as Conv>::Nalg>,
+        <Model::ParamCount as Conv>::Nalg,
+    >,
+{
+    let x = x.convert();
+    let points = Scalar::from_usize(x.len()).expect("Too many data points");
+    let parameters = Scalar::from_usize(<Model as FitModel<Scalar>>::ParamCount::NUM)
+        .expect("Too many parameters");
+    let report = fit(&mut model, &x, y, minimizer, weights);
+
+    let reduced_chi2 = if points > parameters {
+        report.objective_function / (points - parameters)
+    } else {
+        // WARN: add trace event here, or something
+        Scalar::nan()
+    };
+    // source: https://scholarsarchive.byu.edu/cgi/viewcontent.cgi?article=3213&context=facpub
+    // ch. 2 Estimating Uncertainties
+    // (According to formulae, s_y is indeed just a sqrt of reduced chi2)
+    let s_y = Float::sqrt(reduced_chi2);
+    // thing below is (J * J^T)^-1
+    let jacobian = OMatrix::<
+        Scalar,
+        <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
+        X::Points,
+    >::from_iterator_generic(
+        Model::ParamCount::new_nalg(),
+        X::Points::from_usize(x.len()),
+        x.iter().flat_map(|x| model.jacobian(x).into()),
+    );
+    let jj_t = jacobian.clone() * jacobian.transpose();
+    let covariance_matrix = jj_t
+        .try_inverse()
+        .expect("Should be able to invert a matrix")
+        * s_y;
+
+    let sigma2_arr = covariance_matrix
+        .diagonal()
+        .into_iter()
+        .copied()
+        .map(Float::sqrt)
+        .collect();
+    let errors = model.with_errors(sigma2_arr);
+
+    FitStat {
+        report,
+        reduced_chi2,
+        errors,
+        covariance_matrix,
+    }
 }
