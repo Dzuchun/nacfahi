@@ -1,4 +1,9 @@
-use generic_array::{ArrayLength, GenericArray};
+use core::{
+    iter::Sum,
+    ops::{Div, Mul},
+};
+
+use generic_array::{functional::FunctionalSequence, ArrayLength, GenericArray};
 use typenum::{Prod, Quot, ToUInt};
 
 #[doc(hidden)]
@@ -96,5 +101,44 @@ where
     #[allow(unsafe_code)]
     unsafe {
         generic_array::const_transmute(arr)
+    }
+}
+
+impl<const N: usize, Scalar, Model> FitModel<Scalar> for [Model; N]
+where
+    Scalar: Sum,
+    Model: FitModel<Scalar>,
+    typenum::Const<N>: ToUInt,
+    TNum<N>: ArrayLength,
+    Model::ParamCount: Mul<TNum<N>>,
+    Prod<Model::ParamCount, TNum<N>>: ArrayLength + Div<Model::ParamCount, Output = TNum<N>>,
+{
+    type ParamCount = Prod<Model::ParamCount, TNum<N>>;
+
+    #[inline]
+    fn evaluate(&self, x: &Scalar) -> Scalar {
+        self.iter().map(move |e| e.evaluate(x)).sum::<Scalar>()
+    }
+
+    #[inline]
+    fn jacobian(&self, x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+        let jacobian_generic_arr: GenericArray<GenericArray<Scalar, Model::ParamCount>, TNum<N>> =
+            GenericArray::from_array(self.each_ref().map(|entity| entity.jacobian(x).into()));
+        flatten(jacobian_generic_arr)
+    }
+
+    #[inline]
+    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+        let unflat = unflatten::<_, _, Model::ParamCount>(new_params);
+        let inners: &mut GenericArray<Model, TNum<N>> =
+            GenericArray::from_mut_slice(self.as_mut_slice());
+        inners.zip(unflat, Model::set_params);
+    }
+
+    #[inline]
+    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+        let jacobian_generic_arr: GenericArray<GenericArray<Scalar, Model::ParamCount>, TNum<N>> =
+            GenericArray::from_array(self.each_ref().map(|entity| entity.get_params().into()));
+        flatten(jacobian_generic_arr)
     }
 }
