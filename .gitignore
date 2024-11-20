@@ -4,3 +4,6 @@
 act_event.json
 .actrc
 
+# local scripts
+rustdoc.sh
+
