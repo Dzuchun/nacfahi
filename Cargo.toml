@@ -1,3 +1,15 @@
 [workspace]
 members = ["nacfahi", "nacfahi-derive"]
 resolver = "1"
+
+[workspace.lints.rust]
+rust_2018_idioms = { level = "deny", priority = -1 }
+missing_debug_implementations = "deny"
+missing_docs = "deny"
+unsafe_code = "deny"
+
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "forbid"
+
+[workspace.lints.clippy]
+module_name_repetitions = "allow"
