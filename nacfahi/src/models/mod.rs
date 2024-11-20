@@ -71,3 +71,30 @@ where
     }
 }
 
+#[inline]
+#[doc(hidden)]
+fn flatten<T, R, C>(arr: GenericArray<GenericArray<T, R>, C>) -> GenericArray<T, Prod<R, C>>
+where
+    R: ArrayLength + core::ops::Mul<C>,
+    C: ArrayLength,
+    Prod<R, C>: ArrayLength,
+{
+    #[allow(unsafe_code)]
+    unsafe {
+        generic_array::const_transmute(arr)
+    }
+}
+
+#[inline]
+#[doc(hidden)]
+fn unflatten<T, P, R>(arr: GenericArray<T, P>) -> GenericArray<GenericArray<T, R>, Quot<P, R>>
+where
+    R: ArrayLength,
+    P: ArrayLength + core::ops::Div<R>,
+    Quot<P, R>: ArrayLength,
+{
+    #[allow(unsafe_code)]
+    unsafe {
+        generic_array::const_transmute(arr)
+    }
+}
