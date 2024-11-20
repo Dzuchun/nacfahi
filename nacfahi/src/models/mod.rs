@@ -121,6 +121,11 @@ where
     }
 }
 
+#[cfg(test)]
+static_assertions::assert_impl_all!([basic::Gaussian<f64>; 1]: FitModel<f64>);
+#[cfg(test)]
+static_assertions::assert_impl_all!([basic::Exponent<f64>; 5]: FitModel<f64>);
+
 impl<const N: usize, Scalar, Model> FitModel<Scalar> for [Model; N]
 where
     Scalar: Sum,

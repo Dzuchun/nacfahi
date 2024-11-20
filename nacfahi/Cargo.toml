@@ -15,5 +15,10 @@ nacfahi-derive = { path = "../nacfahi-derive" }
 [lints]
 workspace = true
 
+[dev-dependencies]
+approx = "0.5.1"
+nalgebra = { version = "0.33.2", features = ["macros"] }
+static_assertions = "1.1.0"
+
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "katex.html" ]
