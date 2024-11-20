@@ -12,6 +12,9 @@ use levenberg_marquardt::LeastSquaresProblem;
 use nalgebra::Matrix;
 use nalgebra::{ComplexField, Dim, DimMax, DimMaximum, DimMin, Dyn, MatrixView, RealField};
 
+/// Re-export, used by [`macro@fit!`].
+///
+pub use num_traits::One;
 
 use num_traits::Float;
 
@@ -177,6 +180,51 @@ impl<Scalar> CreateProblem<Scalar> for Dyn {
         }
     }
 }
+
+#[macro_export]
+#[cfg(doc)]
+macro_rules! fit {
+    (
+        $model:expr,
+        $x:expr,
+        $y:expr
+        $(, weights = $wights:expr)?
+        $(, minimizer = $minimizer:expr)?
+    ) => { ... };
+}
+
+#[macro_export]
+#[cfg(not(doc))]
+macro_rules! fit {
+    ($model:expr, $x:expr, $y:expr $(, $par_name:ident = $par_value:expr) *) => {{
+        let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
+        fn weights<Scalar: ::nacfahi::One>(x: Scalar, y: Scalar) -> Scalar {
+            Scalar::one()
+        }
+
+        let model = $model;
+        let x = $x;
+        let y = $y;
+        ::nacfahi::fit!(@ $($par_name = $par_value),*; model = model, x = x, y = y, minimizer = minimizer, weights = weights)
+    }};
+
+    (@ minimizer = $new_minimizer:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
+        use ::core::borrow::Borrow;
+        let tmp = $new_minimizer;
+        $minimizer = tmp.borrow();
+        ::nacfahi::fit!(@ $($par_name = $par_value),*; model = $model, x = $x, y = $y, minimizer = $minimizer, weights = $weights)
+    }};
+
+    (@ weights = $new_weights:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
+        let weights = $new_weights;
+        ::nacfahi::fit!(@ $($par_name = $par_value),*; model = $model, x = $x, y = $y, minimizer = $minimizer, weights = weights)
+    }};
+
+    (@; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {
+        ::nacfahi::fit($model, $x, $y, $minimizer, $weights)
+    };
+}
+
 /// Main interface point. For more convenient use (mostly - to omit some of the fields), you might want to look into [`macro@fit!`] macro.
 ///
 /// P.S.: in case type bounds look terrifying to you - don't worry, they are worse than you can imagine. See examples in documentation for guiding (they are tested on build, ensuring their validity).
