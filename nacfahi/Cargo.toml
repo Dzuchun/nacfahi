@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 generic-array = "1.1.0"
-generic_array_storage = { git = "https://github.com/Dzuchun/generic_array_storage.git", branch = "master" }
+generic_array_storage = { git = "https://github.com/Dzuchun/generic_array_storage.git", tag = "v0.1" }
 levenberg-marquardt = "0.14.0"
 nalgebra = { version = "0.33.2", default-features = false, features = ["alloc"] }
 num-traits = { version = "0.2.19", default-features = false, features = ["libm"] }

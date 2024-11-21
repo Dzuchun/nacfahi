@@ -47,7 +47,7 @@ dependencies = [
 [[package]]
 name = "generic_array_storage"
 version = "0.1.0"
-source = "git+https://github.com/Dzuchun/generic_array_storage.git?branch=master#3b936169f6e670e44ac4f39d6766262c4536e24e"
+source = "git+https://github.com/Dzuchun/generic_array_storage.git?tag=v0.1#3b936169f6e670e44ac4f39d6766262c4536e24e"
 dependencies = [
  "generic-array",
  "nalgebra",
