@@ -6,6 +6,7 @@ use num_traits::FromPrimitive;
 use rand::{thread_rng, Rng};
 
 #[test]
+#[cfg_attr(miri, ignore = "Takes TOO LONG")]
 fn constant_stdev() {
     // some data, x can be whatever
     const SAMPLE_SIZE: usize = 10_000;

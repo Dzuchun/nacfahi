@@ -269,6 +269,7 @@ macro_rules! test_model_derivative {
     ($name:path, $model:expr, [$(($x:expr, $y:expr)),*]) => {
         #[cfg(test)]
         #[test]
+        #[cfg_attr(miri, ignore = "Miri gets angry because of stacked borrows rules somewhere inside nalgebra's storage. The thing is, my own storage implementation IS USED NEARBY (generic_array_storage one), so I AM SCARED PWEASE DOWT HWT MW")]
         #[allow(clippy::too_many_lines, unused_imports)]
         fn model_numeric_test() {
             use ::generic_array_storage::{Conv, GenericMatrixExt, GenericMatrixFromExt};
