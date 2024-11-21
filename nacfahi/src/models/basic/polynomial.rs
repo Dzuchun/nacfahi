@@ -1,6 +1,6 @@
 use core::ops::{Add, Mul};
 
-use generic_array::{sequence::GenericSequence, ArrayLength, GenericArray, IntoArrayLength};
+use generic_array::{sequence::GenericSequence, GenericArray, IntoArrayLength};
 use num_traits::{One, Zero};
 
 use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
@@ -70,8 +70,8 @@ impl<
 
 impl<const ORDER: usize, Scalar> FitModelErrors<Scalar> for Polynomial<ORDER, Scalar>
 where
-    typenum::Const<ORDER>: ArrayLength,
-    Self: FitModel<Scalar, ParamCount = typenum::Const<ORDER>>,
+    typenum::Const<ORDER>: IntoArrayLength,
+    Self: FitModel<Scalar, ParamCount = <typenum::Const<ORDER> as IntoArrayLength>::ArrayLength>,
 {
     type OwnedModel = Polynomial<ORDER, Scalar>;
 
