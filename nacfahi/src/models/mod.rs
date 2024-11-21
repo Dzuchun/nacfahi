@@ -365,7 +365,7 @@ macro_rules! test_model_derivative {
                 x,
                 y,
                 weights: |_, _| 1.0,
-                param_count: core::marker::PhantomData,
+                param_count: ::core::marker::PhantomData,
             });
 
             // act
