@@ -15,13 +15,13 @@ use static_assertions::assert_impl_all;
 
 #[test]
 fn sharp_exponent() {
-    type SharpExponent<Scalar> = Ranged<RangeTo<Scalar>, Exponent<Scalar>>;
+    type SharpExponent<Scalar> = Ranged<Exponent<Scalar>, RangeTo<Scalar>>;
     assert_impl_all!(SharpExponent<f64>: FitModel<f64>);
 
     // this thing will be an exponent only present at x < 0
     let mut chirp: SharpExponent<f64> = Ranged {
-        range: ..0.0,
         inner: Exponent { a: 0.0, b: 0.0 },
+        range: ..0.0,
     };
 
     // data consisting of exponential data at x < 0, and some garbage at x > 0

@@ -7,14 +7,14 @@ use crate::models::{FitModel, FitModelXDeriv};
 
 /// Model filtering the `inner` model to a certain argument `range`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Ranged<Range, Inner> {
-    #[allow(missing_docs)]
-    pub range: Range,
+pub struct Ranged<Inner, Range> {
     #[allow(missing_docs)]
     pub inner: Inner,
+    #[allow(missing_docs)]
+    pub range: Range,
 }
 
-impl<Scalar, Range, Inner> FitModel<Scalar> for Ranged<Range, Inner>
+impl<Scalar, Inner, Range> FitModel<Scalar> for Ranged<Inner, Range>
 where
     Scalar: PartialOrd + Zero,
     Range: RangeBounds<Scalar>,
@@ -54,7 +54,7 @@ where
     }
 }
 
-impl<Scalar, Range, Inner> FitModelXDeriv<Scalar> for Ranged<Range, Inner>
+impl<Scalar, Inner, Range> FitModelXDeriv<Scalar> for Ranged<Inner, Range>
 where
     Scalar: PartialOrd + Zero,
     Range: RangeBounds<Scalar>,

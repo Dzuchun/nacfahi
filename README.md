@@ -102,12 +102,12 @@ See [`models::utility`] items for details. Here are a couple examples:
 # use core::ops::RangeTo;
 # use nacfahi::{models::{basic::Exponent, utility::Ranged}, *};
 // (see `utility_models` integration test for details)
-type SharpExponent<Scalar> = Ranged<RangeTo<Scalar>, Exponent<Scalar>>;
+type SharpExponent<Scalar> = Ranged<Exponent<Scalar>, RangeTo<Scalar>>;
 
 // for example, this model equals 0 at x > 0:
 let _chirp = Ranged {
-    range: ..0.0,
     inner: Exponent { a: 0.0, b: 0.0 },
+    range: ..0.0,
 };
 ```
 
