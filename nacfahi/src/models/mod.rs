@@ -231,3 +231,158 @@ where
         self_array.zip(unflat, Model::with_errors).into_array()
     }
 }
+
+#[cfg(doc)]
+#[macro_export]
+#[doc = include_str!("../../doc/test_model_derivative.md")]
+macro_rules! test_model_derivative {
+    (
+        $isolation_module:ident,
+        $model_type:path,
+        $model_construction:expr,
+        [$(($x:expr, $y:expr)),*]
+    ) => {
+        /* ... */
+    };
+    (
+        $model_type:path,
+        $model_construction:expr,
+        [$(($x:expr, $y:expr)),*]
+    ) => {
+        /* ... */
+    };
+}
+
+#[cfg(not(doc))]
+#[macro_export]
+#[doc = include_str!("../../doc/test_model_derivative.md")]
+macro_rules! test_model_derivative {
+    ($isolation:ident, $name:path, $model:expr, [$(($x:expr, $y:expr)),*]) => {
+        #[cfg(test)]
+        #[doc(hidden)]
+        mod $isolation {
+            #[allow(unused_imports)]
+            use super::*;
+            $crate::test_model_derivative!($name, $model, [$(($x, $y)), *]);
+        }
+    };
+    ($name:path, $model:expr, [$(($x:expr, $y:expr)),*]) => {
+        #[cfg(test)]
+        #[test]
+        #[allow(clippy::too_many_lines, unused_imports)]
+        fn model_numeric_test() {
+            use ::generic_array_storage::{Conv, GenericMatrixExt, GenericMatrixFromExt};
+            use ::nalgebra::{Matrix, Vector};
+            use $crate::{AsMatrixView, models::basic::*, models::utility::*};
+
+            type Opt<'l, F> = $crate::const_problem::ConstOptimizationProblem<
+                'l,
+                f64,
+                ::typenum::Const<N>,
+                ::typenum::Const<M>,
+                $name,
+                F,
+            >;
+
+            const N: usize = <<$name as FitModel<f64>>::ParamCount as Conv>::NUM;
+            const M: usize = [$($x),*].len();
+
+            struct T<'l, F>(Opt<'l, F>);
+
+            impl<F: Fn(f64, f64) -> f64>
+                ::levenberg_marquardt::LeastSquaresProblem<
+                    f64,
+                    ::nalgebra::Const<M>,
+                    ::nalgebra::Const<N>,
+                > for T<'_, F>
+            where
+                Vector<f64, ::nalgebra::Const<N>, ::nalgebra::base::ArrayStorage<f64, N, 1>>:
+                    ::generic_array_storage::GenericMatrixFromExt<
+                        ::typenum::Const<N>,
+                        ::typenum::Const<1>,
+                    >,
+            {
+                type ResidualStorage = ::nalgebra::base::ArrayStorage<f64, M, 1>;
+                type JacobianStorage = ::nalgebra::base::ArrayStorage<f64, M, N>;
+                type ParameterStorage = ::nalgebra::base::ArrayStorage<f64, N, 1>;
+
+                fn set_params(
+                    &mut self,
+                    x: &Vector<f64, ::nalgebra::Const<N>, Self::ParameterStorage>,
+                ) {
+                    let x: Vector<f64, ::nalgebra::Const<N>, Self::ParameterStorage> = x.clone();
+                    <Opt<'_, F> as ::levenberg_marquardt::LeastSquaresProblem<
+                        f64,
+                        ::nalgebra::Const<M>,
+                        ::nalgebra::Const<N>,
+                    >>::set_params(&mut self.0, &x.into_generic_matrix());
+                }
+
+                fn params(&self) -> Vector<f64, ::nalgebra::Const<N>, Self::ParameterStorage> {
+                    <Opt<'_, F> as ::levenberg_marquardt::LeastSquaresProblem<
+                        f64,
+                        ::nalgebra::Const<M>,
+                        ::nalgebra::Const<N>,
+                    >>::params(&self.0)
+                    .into_array_matrix()
+                }
+
+                fn residuals(
+                    &self,
+                ) -> Option<Vector<f64, ::nalgebra::Const<M>, Self::ResidualStorage>> {
+                    Some(
+                        <Opt<'_, F> as ::levenberg_marquardt::LeastSquaresProblem<
+                            f64,
+                            ::nalgebra::Const<M>,
+                            ::nalgebra::Const<N>,
+                        >>::residuals(&self.0)?
+                        .into_array_matrix(),
+                    )
+                }
+
+                fn jacobian(
+                    &self,
+                ) -> Option<
+                    Matrix<f64, ::nalgebra::Const<M>, ::nalgebra::Const<N>, Self::JacobianStorage>,
+                > {
+                    Some(
+                        <Opt<'_, F> as ::levenberg_marquardt::LeastSquaresProblem<
+                            f64,
+                            ::nalgebra::Const<M>,
+                            ::nalgebra::Const<N>,
+                        >>::jacobian(&self.0)?
+                        .into_array_matrix(),
+                    )
+                }
+            }
+
+            // arrange
+            let model = $model;
+            let x = [$($x),*].convert();
+            let y = [$($y),*].convert();
+            let mut combined = T($crate::const_problem::ConstOptimizationProblem {
+                entity: model,
+                x,
+                y,
+                weights: |_, _| 1.0,
+                param_count: core::marker::PhantomData,
+            });
+
+            // act
+            let analytic =
+                <T<'_, _> as ::levenberg_marquardt::LeastSquaresProblem<_, _, _>>::jacobian(
+                    &combined,
+                )
+                .expect("Should be able to compute jacobian analytically");
+            let numerical = ::levenberg_marquardt::differentiate_numerically(&mut combined)
+                .expect("Should be able to compute jacobian numerically");
+
+            // assert
+            if !::approx::ulps_eq!(analytic, numerical, epsilon = 1e-6) {
+                panic!(
+                    "Different jacobian values:\n\tanalytic={analytic}\n\tnumerical={numerical}"
+                );
+            }
+        }
+    };
+}

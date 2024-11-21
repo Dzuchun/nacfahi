@@ -239,3 +239,39 @@ where
         GaussianSErr { a_err, x_c_err }
     }
 }
+
+crate::test_model_derivative!(
+    gausian_test,
+    Gaussian::<f64>,
+    Gaussian {
+        a: -5.0,
+        x_c: 1.0,
+        s: 3.0
+    },
+    [
+        (0.0, -1.0),
+        (1.0, -4.0),
+        (2.0, -5.0),
+        (3.0, 6.0),
+        (4.0, 2.0),
+        (5.0, 2.5)
+    ]
+);
+
+crate::test_model_derivative!(
+    gaussians_test,
+    GaussianS::<f64>,
+    GaussianS {
+        a: -5.0,
+        x_c: 1.0,
+        s: 3.0
+    },
+    [
+        (0.0, -1.0),
+        (1.0, -4.0),
+        (2.0, -5.0),
+        (3.0, 6.0),
+        (4.0, 2.0),
+        (5.0, 2.5)
+    ]
+);
