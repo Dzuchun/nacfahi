@@ -1,6 +1,6 @@
 use core::ops::{Add, Mul};
 
-use generic_array::{sequence::GenericSequence, ArrayLength, GenericArray};
+use generic_array::{sequence::GenericSequence, ArrayLength, GenericArray, IntoArrayLength};
 use num_traits::{One, Zero};
 
 use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
@@ -17,9 +17,9 @@ impl<
         Scalar: Clone + Zero + One + Add<Output = Scalar> + Mul<Output = Scalar>,
     > FitModel<Scalar> for Polynomial<ORDER, Scalar>
 where
-    typenum::Const<ORDER>: ArrayLength,
+    typenum::Const<ORDER>: IntoArrayLength,
 {
-    type ParamCount = typenum::Const<ORDER>;
+    type ParamCount = <typenum::Const<ORDER> as IntoArrayLength>::ArrayLength;
 
     fn evaluate(&self, x: &Scalar) -> Scalar {
         let mut res = Scalar::zero();
