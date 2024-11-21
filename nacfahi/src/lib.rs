@@ -13,10 +13,6 @@ use levenberg_marquardt::LeastSquaresProblem;
 use nalgebra::{ComplexField, Dim, DimMax, DimMaximum, DimMin, Dyn, MatrixView, RealField};
 use nalgebra::{Matrix, OMatrix};
 
-/// Re-export, used by [`macro@fit!`].
-///
-pub use num_traits::One;
-
 use num_traits::Float;
 
 /// Re-export. See [`LevenbergMarquardt`](https://docs.rs/levenberg-marquardt/latest/levenberg_marquardt/struct.LevenbergMarquardt.html)
@@ -192,6 +188,12 @@ impl<Scalar> CreateProblem<Scalar> for Dyn {
     }
 }
 
+/// Default weights function.
+#[doc(hidden)]
+pub fn default_weights<Scalar: num_traits::One>(_x: Scalar, _y: Scalar) -> Scalar {
+    Scalar::one()
+}
+
 #[macro_export]
 #[cfg(doc)]
 #[doc = include_str!("../doc/fit_macro.md")]
@@ -210,15 +212,12 @@ macro_rules! fit {
 #[doc = include_str!("../doc/fit_macro.md")]
 macro_rules! fit {
     ($model:expr, $x:expr, $y:expr $(, $par_name:ident = $par_value:expr) *) => {{
+        use ::nacfahi::default_weights;
         let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
-        fn weights<Scalar: ::nacfahi::One>(x: Scalar, y: Scalar) -> Scalar {
-            Scalar::one()
-        }
-
         let model = $model;
         let x = $x;
         let y = $y;
-        ::nacfahi::fit!(@ $($par_name = $par_value),*; model = model, x = x, y = y, minimizer = minimizer, weights = weights)
+        ::nacfahi::fit!(@ $($par_name = $par_value),*; model = model, x = x, y = y, minimizer = minimizer, weights = default_weights)
     }};
 
     (@ minimizer = $new_minimizer:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
@@ -328,15 +327,12 @@ macro_rules! fit_stat {
 #[doc = include_str!("../doc/fit_stat_macro.md")]
 macro_rules! fit_stat {
     ($model:expr, $x:expr, $y:expr $(, $par_name:ident = $par_value:expr) *) => {{
+        use ::nacfahi::default_weights;
         let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
-        fn weights<Scalar: ::nacfahi::One>(x: Scalar, y: Scalar) -> Scalar {
-            Scalar::one()
-        }
-
         let model = $model;
         let x = $x;
         let y = $y;
-        ::nacfahi::fit_stat!(@ $($par_name = $par_value),*; model = model, x = x, y = y, minimizer = minimizer, weights = weights)
+        ::nacfahi::fit_stat!(@ $($par_name = $par_value),*; model = model, x = x, y = y, minimizer = minimizer, weights = default_weights)
     }};
 
     (@ minimizer = $new_minimizer:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{

@@ -9,7 +9,9 @@ pub fn fit<Scalar>(Entity, X, Y, &LevenbergMarquardt<Scalar>, impl Fn(Scalar, Sc
 Here you can see two optional arguments:
 
 - `LevenbergMarquardt` object is, well, [`LevenbergMarquardt`] object from [`levenberg_marquardt`] crate, defining some approximation config. If none provided, one is created via associated `new` function (see crate doc).
-- `Fn(Scalar, Scalar) -> Scalar` is a weights function, defining weight of the data point based on `x` and `y` value. Defaults to [`One::one`](https://docs.rs/num-traits/latest/num_traits/identities/trait.One.html#tymethod.one).
+- `Fn(Scalar, Scalar) -> Scalar` is a weights function, defining weight of the data point based on `x` and `y` value. Defaults to [`One::one`](https://docs.rs/num-traits/latest/num_traits/identities/trait.One.html#tymethod.one), if possible.
+
+**WARN**: `default_weights` ident for your weights **will not** use your own variable of the same name - that's the name of the default weights function at `nacfahi::default_weights`, and it overrides any ident you might have.
 
 If you need to specify any of them, you can do that:
 
