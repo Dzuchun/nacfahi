@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, unused_variables)]
 
 use core::f64;
 use std::ops::RangeTo;
