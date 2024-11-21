@@ -142,9 +142,9 @@ impl<Scalar: Float + FloatConst> FitModel<Scalar> for Gaussian<Scalar> {
 
 impl<Scalar: Float + FloatConst> FitModelXDeriv<Scalar> for Gaussian<Scalar> {
     #[inline]
-    fn deriv_x(&self, x: &Scalar) -> Scalar {
+    fn deriv_x(&self, &x: &Scalar) -> Scalar {
         // derivatives over x and over x_c are the same, they are symmetrical
-        gaussian_deriv_x_c(*x, self.x_c, self.s, self.a)
+        gaussian_deriv_x_c(self.x_c, x, self.s, self.a)
     }
 }
 
@@ -191,7 +191,7 @@ impl<Scalar: Float + FloatConst> FitModel<Scalar> for GaussianS<Scalar> {
     fn jacobian(&self, &x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
         [
             gaussian_deriv_x_c(x, self.x_c, self.s, self.a),
-            gaussian_deriv_s(x, self.x_c, self.s, self.a),
+            gaussian_deriv_a(x, self.x_c, self.s, self.a),
         ]
     }
 
