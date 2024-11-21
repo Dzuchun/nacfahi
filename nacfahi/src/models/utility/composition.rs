@@ -37,14 +37,17 @@ where
 
     #[inline]
     fn jacobian(&self, x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+        // y = inner(x, p_in)
+        // z = outer(y, p_out)
+        //
+        // z_p_in = z_y * inner_j(z, p_in)
+        // z_p_out = outer_j(y, p_out)
         let y = self.inner.evaluate(x);
-        let j_in_x = self.inner.jacobian(x).into();
-        let j_out_y = self.outer.jacobian(&y).into();
-
         let z_y = self.outer.deriv_x(&y);
-        let j_out_x = j_in_x.map(|d| z_y.clone() * d);
+        let z_p_in = self.inner.jacobian(x).into().map(|v| v * z_y.clone());
+        let z_p_out = self.outer.jacobian(&y).into();
 
-        GenericArray::concat(j_out_x, j_out_y)
+        GenericArray::concat(z_p_in, z_p_out)
     }
 
     #[inline]
