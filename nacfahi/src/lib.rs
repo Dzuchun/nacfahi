@@ -360,12 +360,12 @@ macro_rules! fit_stat {
 ///
 /// ### Outputs NaN
 ///
-/// If there are more less or the same number of data points than parameters. In this case, $\chi^{2}/\text{dof}$ is undefined, and consequently - rest of the analysis.
+/// - If there are more less or the same number of data points than parameters. In this case, $\chi^{2}/\text{dof}$ is undefined, and consequently - rest of the analysis.
+/// - If
 ///
 /// ### Panics
 ///
 /// - If data points count can't be converted to scalar type
-/// - If
 #[must_use = "Covariance matrix are the only point to call this function specifically"]
 pub fn fit_stat<Scalar, Model, X, Y>(
     mut model: Model,
@@ -407,21 +407,27 @@ where
     >,
 {
     let x = x.convert();
+    let y = y.convert();
     let points = Scalar::from_usize(x.len()).expect("Too many data points");
     let parameters = Scalar::from_usize(<Model as FitModel<Scalar>>::ParamCount::NUM)
         .expect("Too many parameters");
-    let report = fit(&mut model, &x, y, minimizer, weights);
+    let report = fit(&mut model, &x, &y, minimizer, weights);
 
-    let reduced_chi2 = if points > parameters {
-        report.objective_function / (points - parameters)
+    // source: https://scholarsarchive.byu.edu/cgi/viewcontent.cgi?article=3213&context=facpub
+    // ch. 2 Estimating Uncertainties
+    let s_y_2 = if points > parameters {
+        x.zip_map(&y, |xi, yi| {
+            let f_x = model.evaluate(&xi);
+            let dev = yi - f_x;
+            dev * dev
+        })
+        .sum()
+            / (points - parameters)
     } else {
         // WARN: add trace event here, or something
         Scalar::nan()
     };
-    // source: https://scholarsarchive.byu.edu/cgi/viewcontent.cgi?article=3213&context=facpub
-    // ch. 2 Estimating Uncertainties
-    // (According to formulae, s_y is indeed just a sqrt of reduced chi2)
-    let s_y = Float::sqrt(reduced_chi2);
+    let s_y = Float::sqrt(s_y_2);
     // thing below is (J * J^T)^-1
     let jacobian = OMatrix::<
         Scalar,
@@ -433,22 +439,30 @@ where
         x.iter().flat_map(|x| model.jacobian(x).into()),
     );
     let jj_t = jacobian.clone() * jacobian.transpose();
-    let covariance_matrix = jj_t
-        .try_inverse()
-        .expect("Should be able to invert a matrix")
-        * s_y;
+    let covariance_matrix = jj_t.try_inverse().unwrap_or_else(|| {
+        // WARN: add trace here too, I guess
+        Matrix::<
+            Scalar,
+            <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
+            <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
+            <nalgebra::DefaultAllocator as nalgebra::allocator::Allocator<
+                <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
+                <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
+            >>::Buffer<Scalar>,
+        >::from_element(Scalar::nan())
+    }) * s_y;
 
-    let sigma2_arr = covariance_matrix
+    let param_errors = covariance_matrix
         .diagonal()
         .into_iter()
         .copied()
         .map(Float::sqrt)
         .collect();
-    let errors = model.with_errors(sigma2_arr);
+    let errors = model.with_errors(param_errors);
 
     FitStat {
         report,
-        reduced_chi2,
+        reduced_chi2: s_y_2,
         errors,
         covariance_matrix,
     }
