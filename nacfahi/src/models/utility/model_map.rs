@@ -1,52 +1,120 @@
-use core::{
-    marker::PhantomData,
-    ops::{Mul, Sub},
-};
+use core::ops::{Mul, Sub};
 
-use generic_array::{functional::FunctionalSequence, GenericArray};
+use generic_array::{functional::FunctionalSequence, ArrayLength, GenericArray, IntoArrayLength};
 use num_traits::{Float, One, Pow};
+use typenum::{U0, U1, U2};
 
 use crate::models::{FitModel, FitModelXDeriv};
 
 /// Defines a function that can be used in [`ModelMap`].
 ///
-/// This trait might seem overcomplicated to you, but the intent is to allow creation of closures representing value and derivative of a map.
+/// This trait might seem overcomplicated to you, but the intent is to allow pre-computing of derivable parameters used in actual computation.
 ///
-/// Contrary to [`FitModel`], this trait is very easy to implement, no [`GenericArray`](generic_array::GenericArray)s required! To prove that, here's actual implementation for power function:
-///
+/// Same as [`FitModel`], this trait uses [`GenericArray`](generic_array::GenericArray), but I've made sure to leave hints to all the parts in the doc. To prove how easy it is, here's an actual implementation of [`Power`] map:
 /// ```rust
 /// # use nacfahi::models::utility::DifferentiableFunction;
-/// # use core::ops::Sub;
-/// # use num_traits::{One, Pow};
-/// pub struct Power<Scalar>(pub Scalar);
+/// use core::ops::Sub;
+/// use num_traits::{One, Pow};
+/// use typenum::{U1, U2};
+/// use generic_array::GenericArray;
+/// use nacfahi::models::utility::func_pars; // it's a one-liner; you can totally do this yourself
+///
+/// # pub struct Power<Scalar>(pub Scalar);
 ///
 /// impl<Scalar: Clone + Sub<Scalar, Output = Scalar> + One + Pow<Scalar, Output = Scalar>>
-///     DifferentiableFunction<1, 1, Scalar> for Power<Scalar>
+///     DifferentiableFunction<Scalar> for Power<Scalar>
 /// {
-///     fn into_params(self) -> ([Scalar; 1], [Scalar; 1]) {
-///         ([self.0.clone()], [self.0.clone().sub(Scalar::one())])
+///     type ValueParams = U1;
+///
+///     type DerivativeParams = U2;
+///
+///     fn into_params(
+///         self,
+///     ) -> (
+///         impl Into<GenericArray<Scalar, Self::ValueParams>>,
+///         impl Into<GenericArray<Scalar, Self::DerivativeParams>>,
+///     ) {
+///         (
+///             [self.0.clone()],
+///             [self.0.clone(), self.0.clone().sub(Scalar::one())],
+///         )
 ///     }
 ///
-///     fn value([pow]: &[Scalar; 1], x: &Scalar) -> Scalar {
+///     fn value(params: &GenericArray<Scalar, Self::ValueParams>, x: &Scalar) -> Scalar {
+///         let [pow] = func_pars(params);
 ///         x.clone().pow(pow.clone())
 ///     }
 ///
-///     fn derivative([pow]: &[Scalar; 1], x: &Scalar) -> Scalar {
-///         x.clone().pow(pow.clone())
+///     fn derivative(params: &GenericArray<Scalar, Self::DerivativeParams>, x: &Scalar) -> Scalar {
+///         let [pow, pow1] = func_pars(params);
+///         x.clone().pow(pow1.clone()) * pow.clone()
 ///     }
 /// }
 /// ```
-pub trait DifferentiableFunction<const VALUE_PARAMS: usize, const DERIVATIVE_PARAMS: usize, Scalar>:
-    Sized
+pub trait DifferentiableFunction<Scalar>: Sized {
+    /// Type representing number of precomputed function parameters.
+    ///
+    /// **Hint**: [`typenum`]`::{U0, U1, U2, ..}` types would most likely work for you.
+    ///
+    /// [`typenum`]: https://docs.rs/typenum/latest/typenum/
+    type ValueParams: ArrayLength;
+    /// Type representing number of precomputed function derivative parameters.
+    ///
+    /// **Hint**: [`typenum`]`::{U0, U1, U2, ..}` types would most likely work for you.
+    ///
+    /// [`typenum`]: https://docs.rs/typenum/latest/typenum/
+    type DerivativeParams: ArrayLength;
+
+    /// Computes and outputs function and it's derivative pre-computed parameters.
+    ///
+    /// (First element - function params, second element - derivative params)
+    ///
+    /// **Hint**: core arrays implement `Into<Generic-Whatever>`, so you can return a tuple of two arrays, containing matching element count.
+    fn into_params(
+        self,
+    ) -> (
+        impl Into<GenericArray<Scalar, Self::ValueParams>>,
+        impl Into<GenericArray<Scalar, Self::DerivativeParams>>,
+    );
+
+    /// Computes value of the function, using params previously produced by `into_params`. Note that it's an *associated function*, so you are not intended to manually pass any sort of state here.
+    ///
+    /// **Hint**: there's a [`func_pars`] function, you can use to transform parameters into core Rust array:
+    /// ```rust
+    /// use nacfahi::models::utility::func_pars;
+    /// /* ... */
+    /// type ValueParams = typenum::U3;
+    /// /* ... */
+    /// # let params = &generic_array::GenericArray::<(), ValueParams>::from_array([(), (), ()]);
+    /// let [arg1, arg2, arg3] = func_pars(params);
+    /// ```
+    ///
+    /// You totally can implement it yourself, or use the array directly, though. I just find this style more comforting.
+    fn value(params: &GenericArray<Scalar, Self::ValueParams>, x: &Scalar) -> Scalar;
+
+    /// Computes derivative of the function, using params previously produced by `into_params`. Note that it's an *associated function*, so you are not intended to manually pass any sort of state here.
+    ///
+    /// **Hint**: there's a [`func_pars`] function, you can use to transform parameters into core Rust array:
+    /// ```rust
+    /// use nacfahi::models::utility::func_pars;
+    /// /* ... */
+    /// type DerivativeParams = typenum::U2;
+    /// /* ... */
+    /// # let params = &generic_array::GenericArray::<(), DerivativeParams>::from_array([(), ()]);
+    /// let [arg1, arg2] = func_pars(params);
+    /// ```
+    ///
+    /// You totally can implement it yourself, or use the array directly, though. I just find this style more comforting.
+    fn derivative(params: &GenericArray<Scalar, Self::DerivativeParams>, x: &Scalar) -> Scalar;
+}
+
+/// A helper function to convert `&GenericArray<T, N>` into `[&T; N]`.
+#[inline]
+pub fn func_pars<T, L: ArrayLength, const N: usize>(array: &GenericArray<T, L>) -> [&T; N]
+where
+    typenum::Const<N>: IntoArrayLength<ArrayLength = L>,
 {
-    /// Should produce functions used by `value` and `derivative` functions.
-    fn into_params(self) -> ([Scalar; VALUE_PARAMS], [Scalar; DERIVATIVE_PARAMS]);
-
-    /// Computes value of the function, using params previously produced `into_params`. Note that it's an *associated function*, so you are not intended to pass any sort of state here.
-    fn value(params: &[Scalar; VALUE_PARAMS], x: &Scalar) -> Scalar;
-
-    /// Computes derivative of the function, using params previously produced `into_params`. Note that it's an *associated function*, so you are not intended to pass any sort of state here.
-    fn derivative(params: &[Scalar; DERIVATIVE_PARAMS], x: &Scalar) -> Scalar;
+    array.map(core::convert::identity).into_array()
 }
 
 /// Function adding a constant to the model output
@@ -54,20 +122,30 @@ pub trait DifferentiableFunction<const VALUE_PARAMS: usize, const DERIVATIVE_PAR
 pub struct Addition<Scalar>(pub Scalar);
 
 impl<Scalar: Clone + core::ops::Add<Scalar, Output = Scalar> + num_traits::One>
-    DifferentiableFunction<1, 0, Scalar> for Addition<Scalar>
+    DifferentiableFunction<Scalar> for Addition<Scalar>
 {
+    type ValueParams = U1;
+    type DerivativeParams = U0;
+
     #[inline]
-    fn into_params(self) -> ([Scalar; 1], [Scalar; 0]) {
+    fn into_params(
+        self,
+    ) -> (
+        impl Into<GenericArray<Scalar, Self::ValueParams>>,
+        impl Into<GenericArray<Scalar, Self::DerivativeParams>>,
+    ) {
         ([self.0], [])
     }
 
     #[inline]
-    fn value([add]: &[Scalar; 1], x: &Scalar) -> Scalar {
+    fn value(params: &GenericArray<Scalar, Self::ValueParams>, x: &Scalar) -> Scalar {
+        let [add] = func_pars(params);
         x.clone() + add.clone()
     }
 
     #[inline]
-    fn derivative([]: &[Scalar; 0], _: &Scalar) -> Scalar {
+    fn derivative(params: &GenericArray<Scalar, Self::DerivativeParams>, _: &Scalar) -> Scalar {
+        let [] = func_pars(params);
         Scalar::one()
     }
 }
@@ -76,21 +154,29 @@ impl<Scalar: Clone + core::ops::Add<Scalar, Output = Scalar> + num_traits::One>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Multiplier<Scalar>(pub Scalar);
 
-impl<Scalar: Clone + core::ops::Mul<Scalar, Output = Scalar>> DifferentiableFunction<1, 1, Scalar>
+impl<Scalar: Clone + core::ops::Mul<Scalar, Output = Scalar>> DifferentiableFunction<Scalar>
     for Multiplier<Scalar>
 {
-    #[inline]
-    fn into_params(self) -> ([Scalar; 1], [Scalar; 1]) {
+    type ValueParams = U1;
+
+    type DerivativeParams = U1;
+
+    fn into_params(
+        self,
+    ) -> (
+        impl Into<GenericArray<Scalar, Self::ValueParams>>,
+        impl Into<GenericArray<Scalar, Self::DerivativeParams>>,
+    ) {
         ([self.0.clone()], [self.0])
     }
 
-    #[inline]
-    fn value([mul]: &[Scalar; 1], x: &Scalar) -> Scalar {
+    fn value(params: &GenericArray<Scalar, Self::ValueParams>, x: &Scalar) -> Scalar {
+        let [mul] = func_pars(params);
         mul.clone() * x.clone()
     }
 
-    #[inline]
-    fn derivative([mul]: &[Scalar; 1], _: &Scalar) -> Scalar {
+    fn derivative(params: &GenericArray<Scalar, Self::DerivativeParams>, _x: &Scalar) -> Scalar {
+        let [mul] = func_pars(params);
         mul.clone()
     }
 }
@@ -100,21 +186,32 @@ impl<Scalar: Clone + core::ops::Mul<Scalar, Output = Scalar>> DifferentiableFunc
 pub struct Power<Scalar>(pub Scalar);
 
 impl<Scalar: Clone + Sub<Scalar, Output = Scalar> + One + Pow<Scalar, Output = Scalar>>
-    DifferentiableFunction<1, 1, Scalar> for Power<Scalar>
+    DifferentiableFunction<Scalar> for Power<Scalar>
 {
-    #[inline]
-    fn into_params(self) -> ([Scalar; 1], [Scalar; 1]) {
-        ([self.0.clone()], [self.0.clone().sub(Scalar::one())])
+    type ValueParams = U1;
+
+    type DerivativeParams = U2;
+
+    fn into_params(
+        self,
+    ) -> (
+        impl Into<GenericArray<Scalar, Self::ValueParams>>,
+        impl Into<GenericArray<Scalar, Self::DerivativeParams>>,
+    ) {
+        (
+            [self.0.clone()],
+            [self.0.clone(), self.0.clone().sub(Scalar::one())],
+        )
     }
 
-    #[inline]
-    fn value([pow]: &[Scalar; 1], x: &Scalar) -> Scalar {
+    fn value(params: &GenericArray<Scalar, Self::ValueParams>, x: &Scalar) -> Scalar {
+        let [pow] = func_pars(params);
         x.clone().pow(pow.clone())
     }
 
-    #[inline]
-    fn derivative([pow]: &[Scalar; 1], x: &Scalar) -> Scalar {
-        x.clone().pow(pow.clone())
+    fn derivative(params: &GenericArray<Scalar, Self::DerivativeParams>, x: &Scalar) -> Scalar {
+        let [pow, pow1] = func_pars(params);
+        x.clone().pow(pow1.clone()) * pow.clone()
     }
 }
 
@@ -122,19 +219,27 @@ impl<Scalar: Clone + Sub<Scalar, Output = Scalar> + One + Pow<Scalar, Output = S
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LnMap;
 
-impl<Scalar: Float> DifferentiableFunction<0, 0, Scalar> for LnMap {
-    #[inline]
-    fn into_params(self) -> ([Scalar; 0], [Scalar; 0]) {
+impl<Scalar: Float> DifferentiableFunction<Scalar> for LnMap {
+    type ValueParams = U0;
+
+    type DerivativeParams = U0;
+
+    fn into_params(
+        self,
+    ) -> (
+        impl Into<GenericArray<Scalar, Self::ValueParams>>,
+        impl Into<GenericArray<Scalar, Self::DerivativeParams>>,
+    ) {
         ([], [])
     }
 
-    #[inline]
-    fn value([]: &[Scalar; 0], x: &Scalar) -> Scalar {
+    fn value(params: &GenericArray<Scalar, Self::ValueParams>, x: &Scalar) -> Scalar {
+        let [] = func_pars(params);
         x.ln()
     }
 
-    #[inline]
-    fn derivative([]: &[Scalar; 0], &x: &Scalar) -> Scalar {
+    fn derivative(params: &GenericArray<Scalar, Self::DerivativeParams>, &x: &Scalar) -> Scalar {
+        let [] = func_pars(params);
         Scalar::one() / x
     }
 }
@@ -143,19 +248,27 @@ impl<Scalar: Float> DifferentiableFunction<0, 0, Scalar> for LnMap {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ExpMap;
 
-impl<Scalar: Float> DifferentiableFunction<0, 0, Scalar> for ExpMap {
-    #[inline]
-    fn into_params(self) -> ([Scalar; 0], [Scalar; 0]) {
+impl<Scalar: Float> DifferentiableFunction<Scalar> for ExpMap {
+    type ValueParams = U0;
+
+    type DerivativeParams = U0;
+
+    fn into_params(
+        self,
+    ) -> (
+        impl Into<GenericArray<Scalar, Self::ValueParams>>,
+        impl Into<GenericArray<Scalar, Self::DerivativeParams>>,
+    ) {
         ([], [])
     }
 
-    #[inline]
-    fn value([]: &[Scalar; 0], x: &Scalar) -> Scalar {
+    fn value(params: &GenericArray<Scalar, Self::ValueParams>, x: &Scalar) -> Scalar {
+        let [] = func_pars(params);
         x.exp()
     }
 
-    #[inline]
-    fn derivative([]: &[Scalar; 0], x: &Scalar) -> Scalar {
+    fn derivative(params: &GenericArray<Scalar, Self::DerivativeParams>, x: &Scalar) -> Scalar {
+        let [] = func_pars(params);
         x.exp()
     }
 }
@@ -163,21 +276,14 @@ impl<Scalar: Float> DifferentiableFunction<0, 0, Scalar> for ExpMap {
 /// Model equal to application of a function on top of a model.
 ///
 /// You **can't** construct this struct manually, please use [`model_map`] for that. This is motivated by it's fields containing two separate objects (`value` and `derivative`), that are actually dependent and should be derived from each other.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ModelMap<Inner, Value, Derivative> {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ModelMap<Scalar, Inner, Map: DifferentiableFunction<Scalar>> {
     /// Inner model.
     pub inner: Inner,
-    /// Closure defining actual map.
-    value: Value,
-    /// Closure defining derivative of the map over it's argument.
-    derivative: Derivative,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[doc(hidden)]
-pub struct ParamFunction<const PARAMS: usize, Scalar, Map> {
-    params: [Scalar; PARAMS],
-    _ph: PhantomData<Map>,
+    /// Parameters of actual map
+    value_params: GenericArray<Scalar, Map::ValueParams>,
+    /// Parameters of map's derivative
+    derivative_params: GenericArray<Scalar, Map::DerivativeParams>,
 }
 
 /// The only way to construct [`ModelMap`].
@@ -185,46 +291,20 @@ pub struct ParamFunction<const PARAMS: usize, Scalar, Map> {
 /// Second argument *simultaneously* defines function and it's derivative used to map the model.
 ///
 /// Output type might seem complicated, but don't worry about that - the whole point is to keep it non-opaque
-pub fn model_map<
-    Scalar: 'static,
-    Inner: FitModel<Scalar>,
-    const VALUE_PARAMS: usize,
-    const DERIVATIVE_PARAMS: usize,
-    Map: DifferentiableFunction<VALUE_PARAMS, DERIVATIVE_PARAMS, Scalar>,
->(
+pub fn model_map<Scalar, Inner: FitModel<Scalar>, Map: DifferentiableFunction<Scalar>>(
     inner: Inner,
     map: Map,
-) -> ModelMap<
-    Inner,
-    ParamFunction<VALUE_PARAMS, Scalar, Map>,
-    ParamFunction<DERIVATIVE_PARAMS, Scalar, Map>,
-> {
+) -> ModelMap<Scalar, Inner, Map> {
     let (value_params, derivative_params) = map.into_params();
     ModelMap {
         inner,
-        value: ParamFunction {
-            params: value_params,
-            _ph: PhantomData,
-        },
-        derivative: ParamFunction {
-            params: derivative_params,
-            _ph: PhantomData,
-        },
+        value_params: value_params.into(),
+        derivative_params: derivative_params.into(),
     }
 }
 
-impl<
-        Scalar: 'static,
-        Inner,
-        const VALUE_PARAMS: usize,
-        const DERIVATIVE_PARAMS: usize,
-        Map: DifferentiableFunction<VALUE_PARAMS, DERIVATIVE_PARAMS, Scalar>,
-    > FitModel<Scalar>
-    for ModelMap<
-        Inner,
-        ParamFunction<VALUE_PARAMS, Scalar, Map>,
-        ParamFunction<DERIVATIVE_PARAMS, Scalar, Map>,
-    >
+impl<Scalar, Inner, Map: DifferentiableFunction<Scalar>> FitModel<Scalar>
+    for ModelMap<Scalar, Inner, Map>
 where
     Scalar: Clone + core::ops::Mul<Scalar, Output = Scalar>,
     Inner: FitModel<Scalar>,
@@ -233,7 +313,7 @@ where
 
     #[inline]
     fn evaluate(&self, x: &Scalar) -> Scalar {
-        Map::value(&self.value.params, &self.inner.evaluate(x))
+        Map::value(&self.value_params, &self.inner.evaluate(x))
     }
 
     #[inline]
@@ -241,7 +321,7 @@ where
         let inner_eval = self.inner.evaluate(x);
         let inner_jacobian = self.inner.jacobian(x).into();
 
-        let map_derivative = Map::derivative(&self.derivative.params, &inner_eval);
+        let map_derivative = Map::derivative(&self.derivative_params, &inner_eval);
         inner_jacobian.map(|d| map_derivative.clone() * d)
     }
 
@@ -256,17 +336,17 @@ where
     }
 }
 
-impl<Scalar, Inner, Value, Derivative> FitModelXDeriv<Scalar> for ModelMap<Inner, Value, Derivative>
+impl<Scalar, Inner, Map> FitModelXDeriv<Scalar> for ModelMap<Scalar, Inner, Map>
 where
     Scalar: Mul<Output = Scalar>,
     Inner: FitModel<Scalar> + FitModelXDeriv<Scalar>,
-    Derivative: Fn(&Scalar) -> Scalar,
+    Map: DifferentiableFunction<Scalar>,
 {
     #[inline]
     fn deriv_x(&self, x: &Scalar) -> Scalar {
         let y = self.inner.evaluate(x);
         let y_x = self.inner.deriv_x(x);
-        let z_y = (self.derivative)(&y);
+        let z_y = Map::derivative(&self.derivative_params, &y);
         z_y * y_x
     }
 }
