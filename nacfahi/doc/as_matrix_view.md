@@ -141,4 +141,34 @@ let report = fit!(&mut line, x, y);
 # assert_ulps_eq!(line.b, 1.0);
 ```
 
+- A [`GenericArray`]:
+
+```rust
+# use approx::assert_ulps_eq;
+# use nacfahi::{models::basic::Linear, *};
+# use generic_array::GenericArray;
+# 
+# // some data, presumably 2x + 1
+let x = GenericArray::from_array([1.0, 2.0, 3.0, 4.0, 5.0]);
+let y = GenericArray::from_array([3.0, 5.0, 7.0, 9.0, 11.0]);
+# 
+# // fitting model: a*x + b
+# let mut line = Linear { a: 0.0, b: 0.0 };
+# 
+#  // do the fit!
+let report = fit!(&mut line, x, y);
+#  
+#  // check that approximation is successful
+#  assert!(
+#     report.termination.was_successful(),
+#     "Approximation should be successful"
+# );
+# 
+# // check that model parameters have expected values
+# assert_ulps_eq!(line.a, 2.0);
+# assert_ulps_eq!(line.b, 1.0);
+```
+
 - A ref/refmut to any of the above
+
+[`GenericArray`]: https://docs.rs/generic-array/latest/generic_array/struct.GenericArray.html

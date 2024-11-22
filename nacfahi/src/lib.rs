@@ -5,6 +5,7 @@ use core::borrow::Borrow;
 use core::ops::Sub;
 
 use dyn_problem::DynOptimizationProblem;
+use generic_array::{ArrayLength, GenericArray};
 use models::{FitModel, FitModelErrors};
 
 use const_problem::ConstOptimizationProblem;
@@ -83,6 +84,16 @@ where
 
     fn convert(&self) -> MatrixView<'_, Scalar, Self::Points, nalgebra::U1> {
         self.as_view()
+    }
+}
+
+impl<Scalar: nalgebra::Scalar, Points: ArrayLength + Conv<ArrLen = Points>> AsMatrixView<Scalar>
+    for GenericArray<Scalar, Points>
+{
+    type Points = <Points as Conv>::Nalg;
+
+    fn convert(&self) -> MatrixView<'_, Scalar, Self::Points, nalgebra::U1> {
+        MatrixView::<'_, Scalar, Self::Points, nalgebra::U1>::from_slice(self)
     }
 }
 
