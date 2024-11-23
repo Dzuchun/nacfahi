@@ -241,7 +241,7 @@ where
 }
 
 crate::test_model_derivative!(
-    gausian_test,
+    gaussian_test,
     Gaussian::<f64>,
     Gaussian {
         a: -5.0,

@@ -589,7 +589,7 @@ macro_rules! fit_stat {
 ///
 /// - If data points count can't be converted to scalar type
 ///
-/// **TIP**: The `FitDimentionsBound` is an unfortunate outcome to strict type system. In case you deal with generic code, just put the `fit!` statement down, and add the bound you seemingly violate - you **should** be good after that.
+/// **TIP**: The `FitDimensionsBound` is an unfortunate outcome to strict type system. In case you deal with generic code, just put the `fit!` statement down, and add the bound you seemingly violate - you **should** be good after that.
 #[must_use = "Covariance matrix are the only point to call this function specifically"]
 pub fn fit_stat<Scalar, Model, X, Y>(
     mut model: Model,
