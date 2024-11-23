@@ -19,7 +19,7 @@ impl<
 where
     typenum::Const<ORDER>: IntoArrayLength,
 {
-    type ParamCount = <typenum::Const<ORDER> as IntoArrayLength>::ArrayLength;
+    type ParamCount = typenum::Const<ORDER>;
 
     fn evaluate(&self, x: &Scalar) -> Scalar {
         let mut res = Scalar::zero();
@@ -31,7 +31,11 @@ where
         res
     }
 
-    fn jacobian(&self, x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn jacobian(
+        &self,
+        x: &Scalar,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         let mut res = GenericArray::generate(|_| Scalar::zero());
         let mut pow = Scalar::one();
         for i in 0..ORDER {
@@ -41,11 +45,17 @@ where
         res
     }
 
-    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(
+        &mut self,
+        new_params: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+    ) {
         self.params = new_params.into_array();
     }
 
-    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(
+        &self,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         self.params.clone()
     }
 }
@@ -71,11 +81,14 @@ impl<
 impl<const ORDER: usize, Scalar> FitModelErrors<Scalar> for Polynomial<ORDER, Scalar>
 where
     typenum::Const<ORDER>: IntoArrayLength,
-    Self: FitModel<Scalar, ParamCount = <typenum::Const<ORDER> as IntoArrayLength>::ArrayLength>,
+    Self: FitModel<Scalar, ParamCount = typenum::Const<ORDER>>,
 {
     type OwnedModel = Polynomial<ORDER, Scalar>;
 
-    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+    fn with_errors(
+        &self,
+        errors: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+    ) -> Self::OwnedModel {
         Polynomial {
             params: errors.into_array(),
         }

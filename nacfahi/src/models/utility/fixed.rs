@@ -63,7 +63,10 @@ where
 
     fn with_errors(
         &self,
-        _errors: generic_array::GenericArray<Scalar, Self::ParamCount>,
+        _errors: generic_array::GenericArray<
+            Scalar,
+            <Self::ParamCount as generic_array_storage::Conv>::TNum,
+        >,
     ) -> Self::OwnedModel {
     }
 }

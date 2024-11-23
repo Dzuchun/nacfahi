@@ -9,10 +9,15 @@ use generic_array::{ArrayLength, GenericArray};
 use models::{FitModel, FitModelErrors};
 
 use const_problem::ConstOptimizationProblem;
-use generic_array_storage::Conv;
+use generic_array_storage::{Conv, GenericArrayStorage, GenericMatrix, GenericMatrixFromExt};
 use levenberg_marquardt::LeastSquaresProblem;
-use nalgebra::{ComplexField, Dim, DimMax, DimMaximum, DimMin, Dyn, MatrixView, RealField};
+use nalgebra::allocator::{Allocator, Reallocator};
+use nalgebra::{
+    ComplexField, DefaultAllocator, Dim, DimMax, DimMaximum, DimMin, Dyn, MatrixView, RealField,
+};
+
 use nalgebra::{Matrix, OMatrix};
+use typenum::Unsigned;
 
 use num_traits::Float;
 
@@ -87,7 +92,7 @@ where
     }
 }
 
-impl<Scalar: nalgebra::Scalar, Points: ArrayLength + Conv<ArrLen = Points>> AsMatrixView<Scalar>
+impl<Scalar: nalgebra::Scalar, Points: ArrayLength + Conv<TNum = Points>> AsMatrixView<Scalar>
     for GenericArray<Scalar, Points>
 {
     type Points = <Points as Conv>::Nalg;
@@ -105,17 +110,17 @@ pub trait CreateProblem<Scalar> {
     type Nalg: Dim;
 
     /// Creates a problem from data views and arbitrary model.
-    fn create<'d, Params: Conv, Entity: FitModel<Scalar, ParamCount = Params::ArrLen> + 'd>(
+    fn create<'d, Entity: FitModel<Scalar> + 'd>(
         x: MatrixView<'d, Scalar, Self::Nalg, nalgebra::U1>,
         y: MatrixView<'d, Scalar, Self::Nalg, nalgebra::U1>,
         entity: Entity,
         weights: impl Fn(Scalar, Scalar) -> Scalar + 'd,
-    ) -> impl LeastSquaresProblem<Scalar, Self::Nalg, Params::Nalg> + 'd
+    ) -> impl LeastSquaresProblem<Scalar, Self::Nalg, <Entity::ParamCount as Conv>::Nalg> + 'd
     where
         Scalar: ComplexField + Copy,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Params::Nalg, nalgebra::U1>,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Self::Nalg, nalgebra::U1>,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Self::Nalg, Params::Nalg>;
+        DefaultAllocator: Allocator<<Entity::ParamCount as Conv>::Nalg, nalgebra::U1>,
+        DefaultAllocator: Allocator<Self::Nalg, nalgebra::U1>,
+        DefaultAllocator: Allocator<Self::Nalg, <Entity::ParamCount as Conv>::Nalg>;
 }
 
 impl<Scalar, const POINTS: usize> CreateProblem<Scalar> for typenum::Const<POINTS>
@@ -124,24 +129,23 @@ where
 {
     type Nalg = nalgebra::Const<POINTS>;
 
-    fn create<'d, Params: Conv, Entity: FitModel<Scalar, ParamCount = Params::ArrLen> + 'd>(
+    fn create<'d, Entity: FitModel<Scalar> + 'd>(
         x: MatrixView<'d, Scalar, Self::Nalg, nalgebra::U1>,
         y: MatrixView<'d, Scalar, Self::Nalg, nalgebra::U1>,
         entity: Entity,
         weights: impl Fn(Scalar, Scalar) -> Scalar + 'd,
-    ) -> impl LeastSquaresProblem<Scalar, Self::Nalg, Params::Nalg> + 'd
+    ) -> impl LeastSquaresProblem<Scalar, Self::Nalg, <Entity::ParamCount as Conv>::Nalg> + 'd
     where
         Scalar: ComplexField + Copy,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Params::Nalg, nalgebra::U1>,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Self::Nalg, nalgebra::U1>,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Self::Nalg, Params::Nalg>,
+        DefaultAllocator: Allocator<<Entity::ParamCount as Conv>::Nalg, nalgebra::U1>,
+        DefaultAllocator: Allocator<Self::Nalg, nalgebra::U1>,
+        DefaultAllocator: Allocator<Self::Nalg, <Entity::ParamCount as Conv>::Nalg>,
     {
-        ConstOptimizationProblem::<'d, Scalar, Params, Self, Entity, _> {
+        ConstOptimizationProblem::<'d, Scalar, Self, Entity, _> {
             entity,
             x,
             y,
             weights,
-            param_count: core::marker::PhantomData,
         }
     }
 }
@@ -152,24 +156,23 @@ where
 {
     type Nalg = Self;
 
-    fn create<'d, Params: Conv, Entity: FitModel<Scalar, ParamCount = Params::ArrLen> + 'd>(
+    fn create<'d, Entity: FitModel<Scalar> + 'd>(
         x: MatrixView<'d, Scalar, Self::Nalg, nalgebra::U1>,
         y: MatrixView<'d, Scalar, Self::Nalg, nalgebra::U1>,
         entity: Entity,
         weights: impl Fn(Scalar, Scalar) -> Scalar + 'd,
-    ) -> impl LeastSquaresProblem<Scalar, Self::Nalg, Params::Nalg> + 'd
+    ) -> impl LeastSquaresProblem<Scalar, Self::Nalg, <Entity::ParamCount as Conv>::Nalg> + 'd
     where
         Scalar: ComplexField + Copy,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Params::Nalg, nalgebra::U1>,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Self::Nalg, nalgebra::U1>,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Self::Nalg, Params::Nalg>,
+        DefaultAllocator: Allocator<<Entity::ParamCount as Conv>::Nalg, nalgebra::U1>,
+        DefaultAllocator: Allocator<Self::Nalg, nalgebra::U1>,
+        DefaultAllocator: Allocator<Self::Nalg, <Entity::ParamCount as Conv>::Nalg>,
     {
-        ConstOptimizationProblem::<'d, Scalar, Params, Self, Entity, _> {
+        ConstOptimizationProblem::<'d, Scalar, Self, Entity, _> {
             entity,
             x,
             y,
             weights,
-            param_count: core::marker::PhantomData,
         }
     }
 }
@@ -177,24 +180,266 @@ where
 impl<Scalar> CreateProblem<Scalar> for Dyn {
     type Nalg = Self;
 
-    fn create<'d, Params: Conv, Entity: FitModel<Scalar, ParamCount = Params::ArrLen> + 'd>(
+    fn create<'d, Entity: FitModel<Scalar> + 'd>(
         x: MatrixView<'d, Scalar, Self::Nalg, nalgebra::U1>,
         y: MatrixView<'d, Scalar, Self::Nalg, nalgebra::U1>,
         entity: Entity,
         weights: impl Fn(Scalar, Scalar) -> Scalar + 'd,
-    ) -> impl LeastSquaresProblem<Scalar, Self::Nalg, Params::Nalg> + 'd
+    ) -> impl LeastSquaresProblem<Scalar, Self::Nalg, <Entity::ParamCount as Conv>::Nalg> + 'd
     where
         Scalar: ComplexField + Copy,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Params::Nalg, nalgebra::U1>,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Self::Nalg, nalgebra::U1>,
-        nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<Self::Nalg, Params::Nalg>,
+        DefaultAllocator: Allocator<<Entity::ParamCount as Conv>::Nalg, nalgebra::U1>,
+        DefaultAllocator: Allocator<Self::Nalg, nalgebra::U1>,
+        DefaultAllocator: Allocator<Self::Nalg, <Entity::ParamCount as Conv>::Nalg>,
     {
-        DynOptimizationProblem::<'d, Scalar, Params, Entity, _> {
+        DynOptimizationProblem::<'d, Scalar, Entity, _> {
             entity,
             x,
             y,
             weights,
-            param_count: core::marker::PhantomData,
+        }
+    }
+}
+
+/// A helper unit type that is never constructed, and only used in type bounds.
+#[doc(hidden)]
+#[allow(missing_debug_implementations)]
+pub struct FitterUnit(());
+
+/// A helper trait to simplify type bounds for a user. You probably should no see this.
+///
+/// In case you do get a "type does not implement" type or error with this trait... I'm sorry.
+#[doc(hidden)]
+pub trait FitDimensionsBound<Scalar: RealField, ParamCount, Points: Dim> {
+    fn fit<Model: FitModel<Scalar, ParamCount = ParamCount>>(
+        minimizer: impl Borrow<LevenbergMarquardt<Scalar>>,
+        model: Model,
+        x: Matrix<
+            Scalar,
+            Points,
+            nalgebra::Const<1>,
+            nalgebra::ViewStorage<
+                '_,
+                Scalar,
+                Points,
+                nalgebra::Const<1>,
+                nalgebra::Const<1>,
+                Points,
+            >,
+        >,
+        y: Matrix<
+            Scalar,
+            Points,
+            nalgebra::Const<1>,
+            nalgebra::ViewStorage<
+                '_,
+                Scalar,
+                Points,
+                nalgebra::Const<1>,
+                nalgebra::Const<1>,
+                Points,
+            >,
+        >,
+        weights: impl Fn(Scalar, Scalar) -> Scalar,
+    ) -> MinimizationReport<Scalar>;
+}
+
+impl<Scalar, ParamCount, Points> FitDimensionsBound<Scalar, ParamCount, Points> for FitterUnit
+where
+    Scalar: RealField + Float,
+    ParamCount: Conv<TNum = ParamCount> + Sub<typenum::U1>,
+
+    DefaultAllocator: Allocator<<ParamCount as Conv>::Nalg>,
+    DefaultAllocator: Allocator<Points>,
+    DefaultAllocator: Allocator<Points, <ParamCount as Conv>::Nalg>,
+
+    Points: CreateProblem<Scalar, Nalg = Points>,
+    Points: DimMax<<ParamCount as Conv>::Nalg>
+        + DimMin<<ParamCount as Conv>::Nalg>
+        + CreateProblem<Scalar, Nalg = Points>,
+    <ParamCount as Conv>::Nalg: DimMax<Points> + DimMin<Points>,
+    DefaultAllocator: Reallocator<
+        Scalar,
+        Points,
+        <ParamCount as Conv>::Nalg,
+        DimMaximum<Points, <ParamCount as Conv>::Nalg>,
+        <ParamCount as Conv>::Nalg,
+    >,
+{
+    #[allow(
+        clippy::inline_always,
+        reason = "This function is used in a single place, and, in fact, wound not exist unless I wanted to extract the type bounds to a separate trait."
+    )]
+    #[inline(always)]
+    fn fit<Model: FitModel<Scalar, ParamCount = ParamCount>>(
+        minimizer: impl Borrow<LevenbergMarquardt<Scalar>>,
+        model: Model,
+        x: Matrix<
+            Scalar,
+            Points,
+            nalgebra::Const<1>,
+            nalgebra::ViewStorage<
+                '_,
+                Scalar,
+                Points,
+                nalgebra::Const<1>,
+                nalgebra::Const<1>,
+                Points,
+            >,
+        >,
+        y: Matrix<
+            Scalar,
+            Points,
+            nalgebra::Const<1>,
+            nalgebra::ViewStorage<
+                '_,
+                Scalar,
+                Points,
+                nalgebra::Const<1>,
+                nalgebra::Const<1>,
+                Points,
+            >,
+        >,
+        weights: impl Fn(Scalar, Scalar) -> Scalar,
+    ) -> MinimizationReport<Scalar> {
+        let problem = <Points as CreateProblem<Scalar>>::create::<'_, Model>(x, y, model, weights);
+        let (_, report) = LevenbergMarquardt::minimize::<<ParamCount as Conv>::Nalg, Points, _>(
+            minimizer.borrow(),
+            problem,
+        );
+        report
+    }
+}
+
+/// A helper trait to simplify type bounds for a user. You probably should no see this.
+///
+/// In case you do get a "type does not implement" type or error with this trait... I'm sorry.
+#[doc(hidden)]
+pub trait FitErrDimensionsBound<Scalar: RealField, ParamCount: Conv, Points: Dim>:
+    FitDimensionsBound<Scalar, ParamCount, Points>
+{
+    fn produce_stat<Model: FitModel<Scalar, ParamCount = ParamCount> + FitModelErrors<Scalar>>(
+        model: Model,
+        report: MinimizationReport<Scalar>,
+        x: Matrix<
+            Scalar,
+            Points,
+            nalgebra::Const<1>,
+            nalgebra::ViewStorage<
+                '_,
+                Scalar,
+                Points,
+                nalgebra::Const<1>,
+                nalgebra::Const<1>,
+                Points,
+            >,
+        >,
+        y: Matrix<
+            Scalar,
+            Points,
+            nalgebra::Const<1>,
+            nalgebra::ViewStorage<
+                '_,
+                Scalar,
+                Points,
+                nalgebra::Const<1>,
+                nalgebra::Const<1>,
+                Points,
+            >,
+        >,
+    ) -> FitStat<Scalar, Model>;
+}
+
+impl<Scalar: RealField + Float, ParamCount: Conv, Points: Dim>
+    FitErrDimensionsBound<Scalar, ParamCount, Points> for FitterUnit
+where
+    FitterUnit: FitDimensionsBound<Scalar, ParamCount, Points>,
+    DefaultAllocator: Allocator<ParamCount::Nalg>
+        + Allocator<Points>
+        + Allocator<ParamCount::Nalg, Points>
+        + Allocator<Points, ParamCount::Nalg>
+        + Allocator<ParamCount::Nalg, ParamCount::Nalg>,
+{
+    #[allow(
+        clippy::inline_always,
+        reason = "This function is used in a single place, and, in fact, wound not exist unless I wanted to extract the type bounds to a separate trait."
+    )]
+    #[inline(always)]
+    fn produce_stat<Model: FitModel<Scalar, ParamCount = ParamCount> + FitModelErrors<Scalar>>(
+        model: Model,
+        report: MinimizationReport<Scalar>,
+        x: Matrix<
+            Scalar,
+            Points,
+            nalgebra::Const<1>,
+            nalgebra::ViewStorage<
+                '_,
+                Scalar,
+                Points,
+                nalgebra::Const<1>,
+                nalgebra::Const<1>,
+                Points,
+            >,
+        >,
+        y: Matrix<
+            Scalar,
+            Points,
+            nalgebra::Const<1>,
+            nalgebra::ViewStorage<
+                '_,
+                Scalar,
+                Points,
+                nalgebra::Const<1>,
+                nalgebra::Const<1>,
+                Points,
+            >,
+        >,
+    ) -> FitStat<Scalar, Model> {
+        let points = Scalar::from_usize(x.len()).expect("Too many data points");
+        let u_params = <<Model::ParamCount as Conv>::TNum as Unsigned>::USIZE;
+        let parameters = Scalar::from_usize(u_params).expect("Too many parameters");
+        // source: https://scholarsarchive.byu.edu/cgi/viewcontent.cgi?article=3213&context=facpub
+        // ch. 2 Estimating Uncertainties
+        let s_y_2 = if points > parameters {
+            x.zip_map(&y, |xi, yi| {
+                let f_x = model.evaluate(&xi);
+                let dev = yi - f_x;
+                dev * dev
+            })
+            .sum()
+                / (points - parameters)
+        } else {
+            // WARN: add trace event here, or something
+            Scalar::nan()
+        };
+        let s_y = Float::sqrt(s_y_2);
+        // thing below is (J * J^T)^-1
+        let jacobian = OMatrix::<Scalar, ParamCount::Nalg, Points>::from_iterator_generic(
+            ParamCount::new_nalg(),
+            Points::from_usize(x.len()),
+            x.iter().flat_map(|x| model.jacobian(x).into()),
+        );
+        let jj_t = jacobian.clone() * jacobian.transpose();
+        let covariance_matrix = jj_t.try_inverse().map(|jj_x| jj_x * s_y).map_or_else(
+            || {
+                // WARN: add trace here too, I guess
+                let col = core::iter::repeat_n(Scalar::nan(), u_params).collect();
+                let arr = core::iter::repeat_n(col, u_params).collect();
+                GenericMatrix::from_data(GenericArrayStorage(arr))
+            },
+            Matrix::into_generic_matrix,
+        );
+
+        let param_errors = (0usize..u_params)
+            .map(|i| Float::sqrt(covariance_matrix[(i, i)]))
+            .collect();
+        let errors = model.with_errors(param_errors);
+
+        FitStat {
+            report,
+            reduced_chi2: s_y_2,
+            errors,
+            covariance_matrix,
         }
     }
 }
@@ -250,7 +495,7 @@ macro_rules! fit {
 
 /// Main interface point. For more convenient use (mostly - to omit some of the fields), you might want to look into [`macro@fit!`] macro.
 ///
-/// P.S.: in case type bounds look terrifying to you - don't worry, they are worse than you can imagine. See examples in documentation for guiding (they are tested on build, ensuring their validity).
+/// **TIP**: The [`FitDimensionsBound`] is an unfortunate outcome to strict type system. In case you deal with generic code, just put the `fit!` statement down, and add the bound you seemingly violate - you **should** be good after that.
 #[must_use = "Minimization report is really important to check if approximation happened at all"]
 pub fn fit<Scalar, Model, X, Y>(
     model: Model,
@@ -262,51 +507,21 @@ pub fn fit<Scalar, Model, X, Y>(
 where
     Scalar: ComplexField + RealField + Float + Copy,
     Model: FitModel<Scalar>,
-    Model::ParamCount: Conv<ArrLen = Model::ParamCount> + Sub<typenum::U1>,
+    <Model::ParamCount as Conv>::TNum: Sub<typenum::U1>,
     X: AsMatrixView<Scalar>,
     Y: AsMatrixView<Scalar, Points = X::Points>,
-
-    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<<Model::ParamCount as Conv>::Nalg>,
-    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<X::Points>,
-    nalgebra::DefaultAllocator:
-        nalgebra::allocator::Allocator<X::Points, <Model::ParamCount as Conv>::Nalg>,
-
-    X::Points: DimMax<<Model::ParamCount as Conv>::Nalg>
-        + DimMin<<Model::ParamCount as Conv>::Nalg>
-        + CreateProblem<Scalar, Nalg = X::Points>,
-    <Model::ParamCount as Conv>::Nalg: DimMax<X::Points> + DimMin<X::Points>,
-    nalgebra::DefaultAllocator: nalgebra::allocator::Reallocator<
-        Scalar,
-        X::Points,
-        <Model::ParamCount as Conv>::Nalg,
-        DimMaximum<X::Points, <Model::ParamCount as Conv>::Nalg>,
-        <Model::ParamCount as Conv>::Nalg,
-    >,
+    FitterUnit: FitDimensionsBound<Scalar, Model::ParamCount, X::Points>,
 {
     let x = <X as AsMatrixView<_>>::convert(&x);
     let y = <Y as AsMatrixView<_>>::convert(&y);
-    let problem = <X::Points as CreateProblem<Scalar>>::create::<'_, Model::ParamCount, _>(
-        x, y, model, weights,
-    );
-    let (_, report) = LevenbergMarquardt::minimize::<<Model::ParamCount as Conv>::Nalg, X::Points, _>(
-        minimizer.borrow(),
-        problem,
-    );
-    report
+    FitterUnit::fit(minimizer, model, x, y, weights)
 }
-
-#[doc(hidden)]
-type ModelNalg<Scalar, Model> = <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg;
 
 /// Result of [`function@fit_stat`].
 #[derive(Debug)]
 pub struct FitStat<Scalar: RealField, Model: FitModel<Scalar> + FitModelErrors<Scalar>>
 where
-    <Model as FitModel<Scalar>>::ParamCount: Conv,
-    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<
-        <Model::ParamCount as Conv>::Nalg,
-        <Model::ParamCount as Conv>::Nalg,
-    >,
+    Model::ParamCount: Conv,
 {
     /// Report resulted from the fit
     pub report: MinimizationReport<Scalar>,
@@ -317,7 +532,7 @@ where
     /// This will usually be the model type itself, but there may be exceptions.
     pub errors: Model::OwnedModel,
     /// A parameter covariance matrix. If you don't know what this is, you can safely ignore it.
-    pub covariance_matrix: OMatrix<Scalar, ModelNalg<Scalar, Model>, ModelNalg<Scalar, Model>>,
+    pub covariance_matrix: GenericMatrix<Scalar, Model::ParamCount, Model::ParamCount>,
 }
 
 #[macro_export]
@@ -373,6 +588,8 @@ macro_rules! fit_stat {
 /// ### Panics
 ///
 /// - If data points count can't be converted to scalar type
+///
+/// **TIP**: The `FitDimentionsBound` is an unfortunate outcome to strict type system. In case you deal with generic code, just put the `fit!` statement down, and add the bound you seemingly violate - you **should** be good after that.
 #[must_use = "Covariance matrix are the only point to call this function specifically"]
 pub fn fit_stat<Scalar, Model, X, Y>(
     mut model: Model,
@@ -384,93 +601,15 @@ pub fn fit_stat<Scalar, Model, X, Y>(
 where
     Scalar: ComplexField + RealField + Float + Copy,
     Model: FitModel<Scalar> + FitModelErrors<Scalar>,
-    Model::ParamCount: Conv<ArrLen = Model::ParamCount> + Sub<typenum::U1>,
+    <Model::ParamCount as Conv>::TNum: Sub<typenum::U1>,
     X: AsMatrixView<Scalar>,
     Y: AsMatrixView<Scalar, Points = X::Points>,
-
-    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<<Model::ParamCount as Conv>::Nalg>,
-    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<X::Points>,
-    nalgebra::DefaultAllocator:
-        nalgebra::allocator::Allocator<X::Points, <Model::ParamCount as Conv>::Nalg>,
-    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<
-        <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
-        X::Points,
-    >,
-    nalgebra::DefaultAllocator: nalgebra::allocator::Allocator<
-        <Model::ParamCount as Conv>::Nalg,
-        <Model::ParamCount as Conv>::Nalg,
-    >,
-
-    X::Points: DimMax<<Model::ParamCount as Conv>::Nalg>
-        + DimMin<<Model::ParamCount as Conv>::Nalg>
-        + CreateProblem<Scalar, Nalg = X::Points>,
-    <Model::ParamCount as Conv>::Nalg: DimMax<X::Points> + DimMin<X::Points>,
-    nalgebra::DefaultAllocator: nalgebra::allocator::Reallocator<
-        Scalar,
-        X::Points,
-        <Model::ParamCount as Conv>::Nalg,
-        DimMaximum<X::Points, <Model::ParamCount as Conv>::Nalg>,
-        <Model::ParamCount as Conv>::Nalg,
-    >,
+    FitterUnit: FitDimensionsBound<Scalar, Model::ParamCount, X::Points>
+        + FitErrDimensionsBound<Scalar, Model::ParamCount, X::Points>,
 {
     let x = x.convert();
     let y = y.convert();
-    let points = Scalar::from_usize(x.len()).expect("Too many data points");
-    let parameters = Scalar::from_usize(<Model as FitModel<Scalar>>::ParamCount::NUM)
-        .expect("Too many parameters");
     let report = fit(&mut model, &x, &y, minimizer, weights);
 
-    // source: https://scholarsarchive.byu.edu/cgi/viewcontent.cgi?article=3213&context=facpub
-    // ch. 2 Estimating Uncertainties
-    let s_y_2 = if points > parameters {
-        x.zip_map(&y, |xi, yi| {
-            let f_x = model.evaluate(&xi);
-            let dev = yi - f_x;
-            dev * dev
-        })
-        .sum()
-            / (points - parameters)
-    } else {
-        // WARN: add trace event here, or something
-        Scalar::nan()
-    };
-    let s_y = Float::sqrt(s_y_2);
-    // thing below is (J * J^T)^-1
-    let jacobian = OMatrix::<
-        Scalar,
-        <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
-        X::Points,
-    >::from_iterator_generic(
-        Model::ParamCount::new_nalg(),
-        X::Points::from_usize(x.len()),
-        x.iter().flat_map(|x| model.jacobian(x).into()),
-    );
-    let jj_t = jacobian.clone() * jacobian.transpose();
-    let covariance_matrix = jj_t.try_inverse().unwrap_or_else(|| {
-        // WARN: add trace here too, I guess
-        Matrix::<
-            Scalar,
-            <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
-            <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
-            <nalgebra::DefaultAllocator as nalgebra::allocator::Allocator<
-                <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
-                <<Model as FitModel<Scalar>>::ParamCount as Conv>::Nalg,
-            >>::Buffer<Scalar>,
-        >::from_element(Scalar::nan())
-    }) * s_y;
-
-    let param_errors = covariance_matrix
-        .diagonal()
-        .into_iter()
-        .copied()
-        .map(Float::sqrt)
-        .collect();
-    let errors = model.with_errors(param_errors);
-
-    FitStat {
-        report,
-        reduced_chi2: s_y_2,
-        errors,
-        covariance_matrix,
-    }
+    FitterUnit::produce_stat(model, report, x, y)
 }

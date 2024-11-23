@@ -125,7 +125,21 @@ fn fit_entity_sub(ty: Type, sub: Ident) -> TypePath {
 }
 
 fn fit_entity_params(ty: Type) -> Type {
-    Type::Path(fit_entity_sub(ty, id("ParamCount")))
+    let mut params = fit_model();
+    let params_pos = params.segments.len(); // 5, presumably
+    params.segments.push(PathSegment {
+        ident: id("ParamCount"),
+        arguments: PathArguments::None,
+    });
+    let params_count = Type::Path(TypePath {
+        qself: Some(q_self(ty, params_pos)),
+        path: params,
+    });
+
+    Type::Path(TypePath {
+        qself: Some(q_self(params_count, 2)),
+        path: simple_abs_path(["generic_array_storage", "Conv", "TNum"]),
+    })
 }
 
 fn core_op(op: Ident, rhs: Type) -> Path {
@@ -223,12 +237,20 @@ fn add_bounds(types: &[Type], mut consumer: impl FnMut(WherePredicate)) {
             lifetimes: None,
             bounded_ty: type_sum_output(types),
             colon_token: <Token![:] as Default>::default(),
-            bounds: Punctuated::from_iter([TypeParamBound::Trait(TraitBound {
-                paren_token: None,
-                modifier: syn::TraitBoundModifier::None,
-                lifetimes: None,
-                path: simple_abs_path(["generic_array", "ArrayLength"]),
-            })]),
+            bounds: Punctuated::from_iter([
+                TypeParamBound::Trait(TraitBound {
+                    paren_token: None,
+                    modifier: syn::TraitBoundModifier::None,
+                    lifetimes: None,
+                    path: simple_abs_path(["generic_array", "ArrayLength"]),
+                }),
+                TypeParamBound::Trait(TraitBound {
+                    paren_token: None,
+                    modifier: syn::TraitBoundModifier::None,
+                    lifetimes: None,
+                    path: simple_abs_path(["generic_array_storage", "Conv"]),
+                }),
+            ]),
         }));
         consumer(WherePredicate::Type(PredicateType {
             lifetimes: None,
@@ -271,6 +293,43 @@ fn sub_bounds(main_type: Type, types: &[Type], mut consumer: impl FnMut(WherePre
         }));
         sub_bounds(main_type, rest, consumer);
     }
+}
+
+fn final_conv_bound(types: &[Type]) -> WherePredicate {
+    let sum = type_sum(types);
+    WherePredicate::Type(PredicateType {
+        lifetimes: None,
+        bounded_ty: sum.clone(),
+        colon_token: <Token![:] as Default>::default(),
+        bounds: Punctuated::from_iter([TypeParamBound::Trait(TraitBound {
+            paren_token: None,
+            modifier: syn::TraitBoundModifier::None,
+            lifetimes: None,
+            path: Path {
+                leading_colon: Some(<Token![::] as Default>::default()),
+                segments: Punctuated::from_iter([
+                    PathSegment {
+                        ident: id("generic_array_storage"),
+                        arguments: PathArguments::None,
+                    },
+                    PathSegment {
+                        ident: id("Conv"),
+                        arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
+                            colon2_token: None,
+                            lt_token: <Token![<] as Default>::default(),
+                            args: Punctuated::from_iter([GenericArgument::AssocType(AssocType {
+                                ident: id("TNum"),
+                                generics: None,
+                                eq_token: <Token![=] as Default>::default(),
+                                ty: sum,
+                            })]),
+                            gt_token: <Token![>] as Default>::default(),
+                        }),
+                    },
+                ]),
+            },
+        })]),
+    })
 }
 
 fn bounds(types: &[Type], where_clause: Option<WhereClause>) -> WhereClause {
@@ -326,6 +385,8 @@ fn bounds(types: &[Type], where_clause: Option<WhereClause>) -> WhereClause {
 
     let main_type = type_sum_output(types);
     sub_bounds(main_type, types, |pred| res.predicates.push(pred));
+
+    res.predicates.push(final_conv_bound(types));
 
     res
 }
@@ -666,20 +727,26 @@ fn self_generic_array() -> Type {
                         args: Punctuated::from_iter([
                             GenericArgument::Type(ident_type(scalar_ident())),
                             GenericArgument::Type(Type::Path(TypePath {
-                                qself: None,
-                                path: Path {
-                                    leading_colon: None,
-                                    segments: Punctuated::from_iter([
-                                        PathSegment {
-                                            ident: id("Self"),
-                                            arguments: PathArguments::None,
+                                qself: Some(q_self(
+                                    Type::Path(TypePath {
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: Punctuated::from_iter([
+                                                PathSegment {
+                                                    ident: id("Self"),
+                                                    arguments: PathArguments::None,
+                                                },
+                                                PathSegment {
+                                                    ident: id("ParamCount"),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ]),
                                         },
-                                        PathSegment {
-                                            ident: id("ParamCount"),
-                                            arguments: PathArguments::None,
-                                        },
-                                    ]),
-                                },
+                                    }),
+                                    2,
+                                )),
+                                path: simple_abs_path(["generic_array_storage", "Conv", "TNum"]),
                             })),
                         ]),
                         gt_token: <Token![>] as Default>::default(),

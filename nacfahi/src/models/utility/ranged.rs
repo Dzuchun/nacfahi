@@ -35,7 +35,8 @@ where
     fn jacobian(
         &self,
         x: &Scalar,
-    ) -> impl Into<generic_array::GenericArray<Scalar, Self::ParamCount>> {
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         if self.range.contains(x) {
             self.inner.jacobian(x).into()
         } else {
@@ -44,12 +45,18 @@ where
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: generic_array::GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(
+        &mut self,
+        new_params: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+    ) {
         self.inner.set_params(new_params);
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<generic_array::GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(
+        &self,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         self.inner.get_params()
     }
 }

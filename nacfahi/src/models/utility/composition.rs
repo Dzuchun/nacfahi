@@ -5,6 +5,7 @@ use generic_array::{
     sequence::{Concat, Split},
     ArrayLength, GenericArray,
 };
+use generic_array_storage::Conv;
 use typenum::Sum;
 
 use crate::models::{FitModel, FitModelXDeriv};
@@ -23,11 +24,12 @@ where
     Scalar: Clone + Mul<Scalar, Output = Scalar>,
     Inner: FitModel<Scalar>,
     Outer: FitModel<Scalar> + FitModelXDeriv<Scalar>,
-    Inner::ParamCount: Add<Outer::ParamCount>,
-    Sum<Inner::ParamCount, Outer::ParamCount>:
-        ArrayLength + Sub<Inner::ParamCount, Output = Outer::ParamCount>,
+    <Inner::ParamCount as Conv>::TNum: Add<<Outer::ParamCount as Conv>::TNum>,
+    Sum<<Inner::ParamCount as Conv>::TNum, <Outer::ParamCount as Conv>::TNum>: Conv<TNum = Sum<<Inner::ParamCount as Conv>::TNum, <Outer::ParamCount as Conv>::TNum>>
+        + ArrayLength
+        + Sub<<Inner::ParamCount as Conv>::TNum, Output = <Outer::ParamCount as Conv>::TNum>,
 {
-    type ParamCount = Sum<Inner::ParamCount, Outer::ParamCount>;
+    type ParamCount = Sum<<Inner::ParamCount as Conv>::TNum, <Outer::ParamCount as Conv>::TNum>;
 
     #[inline]
     fn evaluate(&self, x: &Scalar) -> Scalar {
@@ -36,7 +38,11 @@ where
     }
 
     #[inline]
-    fn jacobian(&self, x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn jacobian(
+        &self,
+        x: &Scalar,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         // y = inner(x, p_in)
         // z = outer(y, p_out)
         //

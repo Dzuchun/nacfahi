@@ -4,6 +4,7 @@ use core::{
 };
 
 use generic_array::{functional::FunctionalSequence, ArrayLength, GenericArray};
+use generic_array_storage::Conv;
 use typenum::{Prod, Quot, ToUInt};
 
 /// Basic building blocks for the models.
@@ -21,21 +22,24 @@ type TNum<const N: usize> = <typenum::Const<N> as ToUInt>::Output;
 /// Defines object that can fit to a set of data points.
 ///
 /// Generally, you have no reason to implement this trait, as there are model primitives and derive macro for that. Manual implementation is always an option though - I've left some hints, in case you're unfamiliar with the types.
-pub trait FitModel<S> {
+pub trait FitModel<Scalar> {
     /// Type representing number of parameters.
     ///
     /// **Hint**: [`typenum`]`::{U1, U2, ..}` types would most likely work for you.
     ///
     /// [`typenum`]: https://docs.rs/typenum/latest/typenum/
-    type ParamCount: ArrayLength;
+    type ParamCount: generic_array_storage::Conv;
 
     /// Computes model value for supplied `x` value and current parameters.
-    fn evaluate(&self, x: &S) -> S;
+    fn evaluate(&self, x: &Scalar) -> Scalar;
 
     /// Computes jacobian (array of derivatives) for supplied `x` value and current parameters.
     ///
     /// **Hint**: return type allows you to return core Rust array, as long as it's size is correct.
-    fn jacobian(&self, x: &S) -> impl Into<GenericArray<S, Self::ParamCount>>;
+    fn jacobian(
+        &self,
+        x: &Scalar,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>;
 
     /// Sets model parameters to ones contained in a generic array
     ///
@@ -46,12 +50,17 @@ pub trait FitModel<S> {
     /// # GenericArray::from_array([(), ()]);
     /// let [p1, p2] = new_params.into_array();
     /// ```
-    fn set_params(&mut self, new_params: GenericArray<S, Self::ParamCount>);
+    fn set_params(
+        &mut self,
+        new_params: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+    );
 
     /// Returns current values of model params.
     ///
     /// **Hint**: return type allows you to return core Rust array, as long as it's size is correct.
-    fn get_params(&self) -> impl Into<GenericArray<S, Self::ParamCount>>;
+    fn get_params(
+        &self,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>;
 }
 
 /// Defines model having derivative over the `x` variable.
@@ -72,7 +81,10 @@ pub trait FitModelErrors<Scalar>: FitModel<Scalar> {
     type OwnedModel;
 
     /// Creates new model representing errors from the error array
-    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel;
+    fn with_errors(
+        &self,
+        errors: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+    ) -> Self::OwnedModel;
 }
 
 impl<Scalar, Model> FitModel<Scalar> for &'_ mut Model
@@ -88,19 +100,29 @@ where
     }
 
     #[inline]
-    fn jacobian(&self, x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn jacobian(
+        &self,
+        x: &Scalar,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         let s: &Model = self;
         Model::jacobian(s, x)
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(
+        &mut self,
+        new_params: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+    ) {
         let s: &mut Model = self;
         Model::set_params(s, new_params);
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(
+        &self,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         let s: &Model = self;
         Model::get_params(s)
     }
@@ -124,7 +146,10 @@ impl<Scalar, Model: FitModelErrors<Scalar>> FitModelErrors<Scalar> for &'_ mut M
     type OwnedModel = Model::OwnedModel;
 
     #[inline]
-    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+    fn with_errors(
+        &self,
+        errors: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+    ) -> Self::OwnedModel {
         <Model as FitModelErrors<Scalar>>::with_errors(self, errors)
     }
 }
@@ -168,10 +193,14 @@ where
     Model: FitModel<Scalar>,
     typenum::Const<N>: ToUInt,
     TNum<N>: ArrayLength,
-    Model::ParamCount: Mul<TNum<N>>,
-    Prod<Model::ParamCount, TNum<N>>: ArrayLength + Div<Model::ParamCount, Output = TNum<N>>,
+    <Model::ParamCount as generic_array_storage::Conv>::TNum: Mul<TNum<N>>,
+    Prod<<Model::ParamCount as generic_array_storage::Conv>::TNum, TNum<N>>:
+        generic_array_storage::Conv<
+                TNum = Prod<<Model::ParamCount as generic_array_storage::Conv>::TNum, TNum<N>>,
+            > + ArrayLength
+            + Div<<Model::ParamCount as generic_array_storage::Conv>::TNum, Output = TNum<N>>,
 {
-    type ParamCount = Prod<Model::ParamCount, TNum<N>>;
+    type ParamCount = Prod<<Model::ParamCount as generic_array_storage::Conv>::TNum, TNum<N>>;
 
     #[inline]
     fn evaluate(&self, x: &Scalar) -> Scalar {
@@ -179,24 +208,31 @@ where
     }
 
     #[inline]
-    fn jacobian(&self, x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
-        let jacobian_generic_arr: GenericArray<GenericArray<Scalar, Model::ParamCount>, TNum<N>> =
-            GenericArray::from_array(self.each_ref().map(|entity| entity.jacobian(x).into()));
+    fn jacobian(
+        &self,
+        x: &Scalar,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as Conv>::TNum>> {
+        let jacobian_generic_arr: GenericArray<
+            GenericArray<Scalar, <Model::ParamCount as Conv>::TNum>,
+            TNum<N>,
+        > = GenericArray::from_array(self.each_ref().map(|entity| entity.jacobian(x).into()));
         flatten(jacobian_generic_arr)
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
-        let unflat = unflatten::<_, _, Model::ParamCount>(new_params);
+    fn set_params(&mut self, new_params: GenericArray<Scalar, <Self::ParamCount as Conv>::TNum>) {
+        let unflat = unflatten::<_, _, <Model::ParamCount as Conv>::TNum>(new_params);
         let inners: &mut GenericArray<Model, TNum<N>> =
             GenericArray::from_mut_slice(self.as_mut_slice());
         inners.zip(unflat, Model::set_params);
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
-        let jacobian_generic_arr: GenericArray<GenericArray<Scalar, Model::ParamCount>, TNum<N>> =
-            GenericArray::from_array(self.each_ref().map(|entity| entity.get_params().into()));
+    fn get_params(&self) -> impl Into<GenericArray<Scalar, <Self::ParamCount as Conv>::TNum>> {
+        let jacobian_generic_arr: GenericArray<
+            GenericArray<Scalar, <Model::ParamCount as Conv>::TNum>,
+            TNum<N>,
+        > = GenericArray::from_array(self.each_ref().map(|entity| entity.get_params().into()));
         flatten(jacobian_generic_arr)
     }
 }
@@ -218,16 +254,18 @@ where
     typenum::Const<N>: ToUInt,
     TNum<N>: ArrayLength,
     Self: FitModel<Scalar>,
-    Model: FitModelErrors<Scalar>,
-    Model::ParamCount: Mul<TNum<N>, Output = Self::ParamCount>,
-    Self::ParamCount: Div<Model::ParamCount, Output = TNum<N>>,
+    Model: FitModel<Scalar> + FitModelErrors<Scalar>,
+    <Self::ParamCount as Conv>::TNum: Div<<Model::ParamCount as Conv>::TNum, Output = TNum<N>>,
 {
     type OwnedModel = [Model::OwnedModel; N];
 
     #[inline]
-    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+    fn with_errors(
+        &self,
+        errors: GenericArray<Scalar, <Self::ParamCount as Conv>::TNum>,
+    ) -> Self::OwnedModel {
         let self_array = GenericArray::from_array(self.each_ref());
-        let unflat = unflatten::<_, _, Model::ParamCount>(errors);
+        let unflat = unflatten::<_, _, <Model::ParamCount as Conv>::TNum>(errors);
         self_array.zip(unflat, Model::with_errors).into_array()
     }
 }
@@ -279,13 +317,12 @@ macro_rules! test_model_derivative {
             type Opt<'l, F> = $crate::const_problem::ConstOptimizationProblem<
                 'l,
                 f64,
-                ::typenum::Const<N>,
                 ::typenum::Const<M>,
                 $name,
                 F,
             >;
 
-            const N: usize = <<$name as FitModel<f64>>::ParamCount as Conv>::NUM;
+            const N: usize = <<<$name as FitModel<f64>>::ParamCount as Conv>::TNum as typenum::Unsigned>::USIZE;
             const M: usize = [$($x),*].len();
 
             struct T<'l, F>(Opt<'l, F>);
@@ -325,7 +362,7 @@ macro_rules! test_model_derivative {
                         ::nalgebra::Const<M>,
                         ::nalgebra::Const<N>,
                     >>::params(&self.0)
-                    .into_array_matrix()
+                    .into_regular_matrix()
                 }
 
                 fn residuals(
@@ -337,7 +374,7 @@ macro_rules! test_model_derivative {
                             ::nalgebra::Const<M>,
                             ::nalgebra::Const<N>,
                         >>::residuals(&self.0)?
-                        .into_array_matrix(),
+                        .into_regular_matrix()
                     )
                 }
 
@@ -352,7 +389,7 @@ macro_rules! test_model_derivative {
                             ::nalgebra::Const<M>,
                             ::nalgebra::Const<N>,
                         >>::jacobian(&self.0)?
-                        .into_array_matrix(),
+                        .into_regular_matrix()
                     )
                 }
             }
@@ -366,7 +403,6 @@ macro_rules! test_model_derivative {
                 x,
                 y,
                 weights: |_, _| 1.0,
-                param_count: ::core::marker::PhantomData,
             });
 
             // act

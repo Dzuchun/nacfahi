@@ -317,7 +317,11 @@ where
     }
 
     #[inline]
-    fn jacobian(&self, x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn jacobian(
+        &self,
+        x: &Scalar,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         let inner_eval = self.inner.evaluate(x);
         let inner_jacobian = self.inner.jacobian(x).into();
 
@@ -326,12 +330,18 @@ where
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(
+        &mut self,
+        new_params: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+    ) {
         self.inner.set_params(new_params);
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(
+        &self,
+    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
+    {
         self.inner.get_params()
     }
 }
