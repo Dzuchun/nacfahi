@@ -3,7 +3,7 @@ A convenience macro for [`function@fit`] function. You are free to call the func
 [`function@fit`] function signature:
 
 ```rust,no_run,ignore
-pub fn fit<Scalar>(Entity, X, Y, &LevenbergMarquardt<Scalar>, impl Fn(Scalar, Scalar) -> Scalar) -> MinimizationReport<Scalar>
+pub fn fit<Scalar>(Model, X, Y, &LevenbergMarquardt<Scalar>, impl Fn(Scalar, Scalar) -> Scalar) -> MinimizationReport<Scalar>
 ```
 
 Here you can see two optional arguments:

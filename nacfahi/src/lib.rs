@@ -118,17 +118,17 @@ pub trait CreateProblem {
     type Nalg: Dim;
 
     /// Creates a problem from data views and arbitrary model.
-    fn create<'d, Entity: FitModel + 'd>(
-        x: MatrixView<'d, Entity::Scalar, Self::Nalg, nalgebra::U1>,
-        y: MatrixView<'d, Entity::Scalar, Self::Nalg, nalgebra::U1>,
-        entity: Entity,
-        weights: impl Fn(Entity::Scalar, Entity::Scalar) -> Entity::Scalar + 'd,
-    ) -> impl LeastSquaresProblem<Entity::Scalar, Self::Nalg, <Entity::ParamCount as Conv>::Nalg> + 'd
+    fn create<'d, Model: FitModel + 'd>(
+        x: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
+        y: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
+        entity: Model,
+        weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar + 'd,
+    ) -> impl LeastSquaresProblem<Model::Scalar, Self::Nalg, <Model::ParamCount as Conv>::Nalg> + 'd
     where
-        Entity::Scalar: ComplexField + Copy,
-        DefaultAllocator: Allocator<<Entity::ParamCount as Conv>::Nalg, nalgebra::U1>,
+        Model::Scalar: ComplexField + Copy,
+        DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg, nalgebra::U1>,
         DefaultAllocator: Allocator<Self::Nalg, nalgebra::U1>,
-        DefaultAllocator: Allocator<Self::Nalg, <Entity::ParamCount as Conv>::Nalg>;
+        DefaultAllocator: Allocator<Self::Nalg, <Model::ParamCount as Conv>::Nalg>;
 }
 
 impl<const POINTS: usize> CreateProblem for typenum::Const<POINTS>
@@ -137,19 +137,19 @@ where
 {
     type Nalg = nalgebra::Const<POINTS>;
 
-    fn create<'d, Entity: FitModel + 'd>(
-        x: MatrixView<'d, Entity::Scalar, Self::Nalg, nalgebra::U1>,
-        y: MatrixView<'d, Entity::Scalar, Self::Nalg, nalgebra::U1>,
-        entity: Entity,
-        weights: impl Fn(Entity::Scalar, Entity::Scalar) -> Entity::Scalar + 'd,
-    ) -> impl LeastSquaresProblem<Entity::Scalar, Self::Nalg, <Entity::ParamCount as Conv>::Nalg> + 'd
+    fn create<'d, Model: FitModel + 'd>(
+        x: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
+        y: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
+        entity: Model,
+        weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar + 'd,
+    ) -> impl LeastSquaresProblem<Model::Scalar, Self::Nalg, <Model::ParamCount as Conv>::Nalg> + 'd
     where
-        Entity::Scalar: ComplexField + Copy,
-        DefaultAllocator: Allocator<<Entity::ParamCount as Conv>::Nalg, nalgebra::U1>,
+        Model::Scalar: ComplexField + Copy,
+        DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg, nalgebra::U1>,
         DefaultAllocator: Allocator<Self::Nalg, nalgebra::U1>,
-        DefaultAllocator: Allocator<Self::Nalg, <Entity::ParamCount as Conv>::Nalg>,
+        DefaultAllocator: Allocator<Self::Nalg, <Model::ParamCount as Conv>::Nalg>,
     {
-        ConstOptimizationProblem::<'d, Self, Entity, _> {
+        ConstOptimizationProblem::<'d, Self, Model, _> {
             entity,
             x,
             y,
@@ -164,19 +164,19 @@ where
 {
     type Nalg = Self;
 
-    fn create<'d, Entity: FitModel + 'd>(
-        x: MatrixView<'d, Entity::Scalar, Self::Nalg, nalgebra::U1>,
-        y: MatrixView<'d, Entity::Scalar, Self::Nalg, nalgebra::U1>,
-        entity: Entity,
-        weights: impl Fn(Entity::Scalar, Entity::Scalar) -> Entity::Scalar + 'd,
-    ) -> impl LeastSquaresProblem<Entity::Scalar, Self::Nalg, <Entity::ParamCount as Conv>::Nalg> + 'd
+    fn create<'d, Model: FitModel + 'd>(
+        x: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
+        y: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
+        entity: Model,
+        weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar + 'd,
+    ) -> impl LeastSquaresProblem<Model::Scalar, Self::Nalg, <Model::ParamCount as Conv>::Nalg> + 'd
     where
-        Entity::Scalar: ComplexField + Copy,
-        DefaultAllocator: Allocator<<Entity::ParamCount as Conv>::Nalg, nalgebra::U1>,
+        Model::Scalar: ComplexField + Copy,
+        DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg, nalgebra::U1>,
         DefaultAllocator: Allocator<Self::Nalg, nalgebra::U1>,
-        DefaultAllocator: Allocator<Self::Nalg, <Entity::ParamCount as Conv>::Nalg>,
+        DefaultAllocator: Allocator<Self::Nalg, <Model::ParamCount as Conv>::Nalg>,
     {
-        ConstOptimizationProblem::<'d, Self, Entity, _> {
+        ConstOptimizationProblem::<'d, Self, Model, _> {
             entity,
             x,
             y,
@@ -188,19 +188,19 @@ where
 impl CreateProblem for Dyn {
     type Nalg = Self;
 
-    fn create<'d, Entity: FitModel + 'd>(
-        x: MatrixView<'d, Entity::Scalar, Self::Nalg, nalgebra::U1>,
-        y: MatrixView<'d, Entity::Scalar, Self::Nalg, nalgebra::U1>,
-        entity: Entity,
-        weights: impl Fn(Entity::Scalar, Entity::Scalar) -> Entity::Scalar + 'd,
-    ) -> impl LeastSquaresProblem<Entity::Scalar, Self::Nalg, <Entity::ParamCount as Conv>::Nalg> + 'd
+    fn create<'d, Model: FitModel + 'd>(
+        x: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
+        y: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
+        entity: Model,
+        weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar + 'd,
+    ) -> impl LeastSquaresProblem<Model::Scalar, Self::Nalg, <Model::ParamCount as Conv>::Nalg> + 'd
     where
-        Entity::Scalar: ComplexField + Copy,
-        DefaultAllocator: Allocator<<Entity::ParamCount as Conv>::Nalg, nalgebra::U1>,
+        Model::Scalar: ComplexField + Copy,
+        DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg, nalgebra::U1>,
         DefaultAllocator: Allocator<Self::Nalg, nalgebra::U1>,
-        DefaultAllocator: Allocator<Self::Nalg, <Entity::ParamCount as Conv>::Nalg>,
+        DefaultAllocator: Allocator<Self::Nalg, <Model::ParamCount as Conv>::Nalg>,
     {
-        DynOptimizationProblem::<'d, Entity, _> {
+        DynOptimizationProblem::<'d, Model, _> {
             entity,
             x,
             y,
