@@ -6,6 +6,7 @@ mod exponent;
 mod gaussian;
 #[doc(hidden)]
 mod linear;
+#[doc(hidden)]
 mod polynomial;
 
 pub use constant::*;
