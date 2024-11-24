@@ -1,7 +1,7 @@
 #![doc = include_str!("../../README.md")]
 #![no_std] // <-- see that attr? No shit!
 
-use core::borrow::Borrow;
+use core::borrow::{Borrow, BorrowMut};
 use core::ops::Sub;
 
 use dyn_problem::DynOptimizationProblem;
@@ -13,7 +13,8 @@ use generic_array_storage::{Conv, GenericArrayStorage, GenericMatrix, GenericMat
 use levenberg_marquardt::LeastSquaresProblem;
 use nalgebra::allocator::{Allocator, Reallocator};
 use nalgebra::{
-    ComplexField, DefaultAllocator, Dim, DimMax, DimMaximum, DimMin, Dyn, MatrixView, RealField,
+    ComplexField, DefaultAllocator, Dim, DimMax, DimMaximum, DimMin, DimName, Dyn, MatrixView,
+    RealField,
 };
 
 use nalgebra::{Matrix, OMatrix};
@@ -45,17 +46,21 @@ pub trait AsMatrixView {
     /// Type of the elements
     type Scalar;
     /// Type representing data points count.
-    type Points: Dim;
+    type Points: CreateProblem;
 
     /// Creates data view from type.
-    fn convert(&self) -> MatrixView<'_, Self::Scalar, Self::Points, nalgebra::U1>;
+    fn convert(
+        &self,
+    ) -> MatrixView<'_, Self::Scalar, <Self::Points as CreateProblem>::Nalg, nalgebra::U1>;
 }
 
 impl<'r, T: AsMatrixView + ?Sized> AsMatrixView for &'r T {
     type Scalar = T::Scalar;
     type Points = T::Points;
 
-    fn convert(&self) -> MatrixView<'_, Self::Scalar, Self::Points, nalgebra::U1> {
+    fn convert(
+        &self,
+    ) -> MatrixView<'_, Self::Scalar, <Self::Points as CreateProblem>::Nalg, nalgebra::U1> {
         <T as AsMatrixView>::convert(self)
     }
 }
@@ -64,17 +69,24 @@ impl<'r, T: AsMatrixView + ?Sized> AsMatrixView for &'r mut T {
     type Scalar = T::Scalar;
     type Points = T::Points;
 
-    fn convert(&self) -> MatrixView<'_, Self::Scalar, Self::Points, nalgebra::U1> {
+    fn convert(
+        &self,
+    ) -> MatrixView<'_, Self::Scalar, <Self::Points as CreateProblem>::Nalg, nalgebra::U1> {
         <T as AsMatrixView>::convert(self)
     }
 }
 
-impl<Scalar: nalgebra::Scalar, const N: usize> AsMatrixView for [Scalar; N] {
+impl<Scalar: nalgebra::Scalar, const N: usize> AsMatrixView for [Scalar; N]
+where
+    nalgebra::Const<N>: CreateProblem<Nalg = nalgebra::Const<N>>,
+{
     type Scalar = Scalar;
     type Points = nalgebra::Const<N>;
 
-    fn convert(&self) -> MatrixView<'_, Self::Scalar, Self::Points, nalgebra::U1> {
-        MatrixView::<'_, Self::Scalar, Self::Points, nalgebra::U1>::from_slice(self)
+    fn convert(
+        &self,
+    ) -> MatrixView<'_, Self::Scalar, <Self::Points as CreateProblem>::Nalg, nalgebra::U1> {
+        MatrixView::<'_, Self::Scalar, <Self::Points as CreateProblem>::Nalg, nalgebra::U1>::from_slice(self)
     }
 }
 
@@ -89,6 +101,7 @@ impl<Scalar: nalgebra::Scalar> AsMatrixView for [Scalar] {
 
 impl<Scalar, Points: Dim, S> AsMatrixView for Matrix<Scalar, Points, nalgebra::U1, S>
 where
+    Points: CreateProblem<Nalg = Points>,
     S: nalgebra::storage::RawStorage<Scalar, Points, RStride = nalgebra::U1, CStride = Points>,
 {
     type Scalar = Scalar;
@@ -101,12 +114,17 @@ where
 
 impl<Scalar: nalgebra::Scalar, Points: ArrayLength + Conv<TNum = Points>> AsMatrixView
     for GenericArray<Scalar, Points>
+where
+    <Points as Conv>::Nalg: CreateProblem,
+    <<Points as Conv>::Nalg as CreateProblem>::Nalg: DimName,
 {
     type Scalar = Scalar;
     type Points = <Points as Conv>::Nalg;
 
-    fn convert(&self) -> MatrixView<'_, Self::Scalar, Self::Points, nalgebra::U1> {
-        MatrixView::<'_, Self::Scalar, Self::Points, nalgebra::U1>::from_slice(self)
+    fn convert(
+        &self,
+    ) -> MatrixView<'_, Self::Scalar, <Self::Points as CreateProblem>::Nalg, nalgebra::U1> {
+        MatrixView::<'_, Self::Scalar, <Self::Points as CreateProblem>::Nalg, nalgebra::U1>::from_slice(self)
     }
 }
 
@@ -214,39 +232,28 @@ impl CreateProblem for Dyn {
 #[allow(missing_debug_implementations)]
 pub struct FitterUnit(());
 
-#[doc(hidden)]
-type DataMatrix<'l, Model, Points> = Matrix<
-    <Model as FitModel>::Scalar,
-    Points,
-    nalgebra::Const<1>,
-    nalgebra::ViewStorage<
-        'l,
-        <Model as FitModel>::Scalar,
-        Points,
-        nalgebra::Const<1>,
-        nalgebra::Const<1>,
-        Points,
-    >,
->;
+type DataPoints<Data> = <<Data as AsMatrixView>::Points as CreateProblem>::Nalg;
 
 /// A helper trait to simplify type bounds for a user. You probably should no see this.
 ///
 /// In case you do get a "type does not implement" type or error with this trait... I'm sorry.
-#[doc(hidden)]
-pub trait FitBound<Model: FitModel, Points: Dim>
+pub trait FitBound<Model: FitModel, X, Y>
 where
     Model::Scalar: RealField,
 {
+    #[doc(hidden)]
+    type Points: Dim;
+    #[doc(hidden)]
     fn fit(
         minimizer: impl Borrow<LevenbergMarquardt<Model::Scalar>>,
-        model: Model,
-        x: DataMatrix<'_, Model, Points>,
-        y: DataMatrix<'_, Model, Points>,
+        model: impl BorrowMut<Model>,
+        x: impl Borrow<X>,
+        y: impl Borrow<Y>,
         weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
     ) -> MinimizationReport<Model::Scalar>;
 }
 
-impl<Model, Points> FitBound<Model, Points> for FitterUnit
+impl<Model, X, Y> FitBound<Model, X, Y> for FitterUnit
 where
     Model: FitModel,
     Model::Scalar: RealField + Float,
@@ -254,22 +261,28 @@ where
     <Model::ParamCount as Conv>::TNum: Sub<typenum::U1>,
 
     DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg>,
-    DefaultAllocator: Allocator<Points>,
-    DefaultAllocator: Allocator<Points, <Model::ParamCount as Conv>::Nalg>,
+    DefaultAllocator: Allocator<DataPoints<X>>,
+    DefaultAllocator: Allocator<DataPoints<X>, <Model::ParamCount as Conv>::Nalg>,
 
-    Points: CreateProblem<Nalg = Points>,
-    Points: DimMax<<Model::ParamCount as Conv>::Nalg>
-        + DimMin<<Model::ParamCount as Conv>::Nalg>
-        + CreateProblem<Nalg = Points>,
-    <Model::ParamCount as Conv>::Nalg: DimMax<Points> + DimMin<Points>,
+    X: AsMatrixView<Scalar = Model::Scalar>,
+    X::Points: CreateProblem,
+
+    Y: AsMatrixView<Scalar = Model::Scalar, Points = X::Points>,
+
+    DataPoints<X>:
+        DimMax<<Model::ParamCount as Conv>::Nalg> + DimMin<<Model::ParamCount as Conv>::Nalg>,
+    <Model::ParamCount as Conv>::Nalg:
+        DimMax<<X::Points as CreateProblem>::Nalg> + DimMin<<X::Points as CreateProblem>::Nalg>,
     DefaultAllocator: Reallocator<
         Model::Scalar,
-        Points,
+        DataPoints<X>,
         <Model::ParamCount as Conv>::Nalg,
-        DimMaximum<Points, <Model::ParamCount as Conv>::Nalg>,
+        DimMaximum<DataPoints<X>, <Model::ParamCount as Conv>::Nalg>,
         <Model::ParamCount as Conv>::Nalg,
     >,
 {
+    type Points = <<X as AsMatrixView>::Points as CreateProblem>::Nalg;
+
     #[allow(
         clippy::inline_always,
         reason = "This function is used in a single place, and, in fact, wound not exist unless I wanted to extract the type bounds to a separate trait."
@@ -277,15 +290,18 @@ where
     #[inline(always)]
     fn fit(
         minimizer: impl Borrow<LevenbergMarquardt<Model::Scalar>>,
-        model: Model,
-        x: DataMatrix<'_, Model, Points>,
-        y: DataMatrix<'_, Model, Points>,
+        mut model: impl BorrowMut<Model>,
+        x: impl Borrow<X>,
+        y: impl Borrow<Y>,
         weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
     ) -> MinimizationReport<Model::Scalar> {
-        let problem = <Points as CreateProblem>::create::<'_, Model>(x, y, model, weights);
+        let x = x.borrow().convert();
+        let y = y.borrow().convert();
+
+        let problem = X::Points::create::<'_, &mut Model>(x, y, model.borrow_mut(), weights);
         let (_, report) = LevenbergMarquardt::minimize::<
             <Model::ParamCount as Conv>::Nalg,
-            Points,
+            DataPoints<X>,
             _,
         >(minimizer.borrow(), problem);
         report
@@ -295,27 +311,37 @@ where
 /// A helper trait to simplify type bounds for a user. You probably should no see this.
 ///
 /// In case you do get a "type does not implement" type or error with this trait... I'm sorry.
-#[doc(hidden)]
-pub trait FitErrBound<Model: FitModelErrors, Points: Dim>: FitBound<Model, Points>
+pub trait FitErrBound<Model: FitModelErrors, X, Y>: FitBound<Model, X, Y>
 where
     Model::Scalar: RealField,
 {
+    #[doc(hidden)]
     fn produce_stat(
-        model: Model,
+        model: impl Borrow<Model>,
         report: MinimizationReport<Model::Scalar>,
-        x: DataMatrix<'_, Model, Points>,
-        y: DataMatrix<'_, Model, Points>,
+        x: X,
+        y: Y,
     ) -> FitStat<Model>;
 }
 
-impl<Model: FitModelErrors, Points: Dim> FitErrBound<Model, Points> for FitterUnit
+impl<Model, X, Y> FitErrBound<Model, X, Y> for FitterUnit
 where
+    Self: FitBound<Model, X, Y>,
+
+    Model: FitModelErrors,
     Model::Scalar: RealField + Float,
-    FitterUnit: FitBound<Model, Points>,
+    Model::ParamCount: Conv,
+    <Model::ParamCount as Conv>::TNum: Sub<typenum::U1>,
+
+    X: AsMatrixView<Scalar = Model::Scalar>,
+    X::Points: CreateProblem,
+
+    Y: AsMatrixView<Scalar = Model::Scalar, Points = X::Points>,
+
     DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg>
-        + Allocator<Points>
-        + Allocator<<Model::ParamCount as Conv>::Nalg, Points>
-        + Allocator<Points, <Model::ParamCount as Conv>::Nalg>
+        + Allocator<DataPoints<X>>
+        + Allocator<<Model::ParamCount as Conv>::Nalg, DataPoints<X>>
+        + Allocator<DataPoints<X>, <Model::ParamCount as Conv>::Nalg>
         + Allocator<<Model::ParamCount as Conv>::Nalg, <Model::ParamCount as Conv>::Nalg>,
 {
     #[allow(
@@ -324,11 +350,18 @@ where
     )]
     #[inline(always)]
     fn produce_stat(
-        model: Model,
+        model: impl Borrow<Model>,
         report: MinimizationReport<Model::Scalar>,
-        x: DataMatrix<'_, Model, Points>,
-        y: DataMatrix<'_, Model, Points>,
-    ) -> FitStat<Model> {
+        x: X,
+        y: Y,
+    ) -> FitStat<Model>
+    where
+        Model: FitModelErrors,
+    {
+        let model = model.borrow();
+        let x = x.convert();
+        let y = y.convert();
+
         let points =
             <Model::Scalar as NumCast>::from::<usize>(x.len()).expect("Too many data points");
         let u_params = <<Model::ParamCount as Conv>::TNum as Unsigned>::USIZE;
@@ -350,9 +383,9 @@ where
         };
         let s_y = Float::sqrt(s_y_2);
         // thing below is (J * J^T)^-1
-        let jacobian = OMatrix::<Model::Scalar, <Model::ParamCount as Conv>::Nalg, Points>::from_iterator_generic(
+        let jacobian = OMatrix::<Model::Scalar, <Model::ParamCount as Conv>::Nalg, DataPoints<X>>::from_iterator_generic(
             Model::ParamCount::new_nalg(),
-            Points::from_usize(x.len()),
+            DataPoints::<X>::from_usize(x.len()),
             x.iter().flat_map(|x| model.jacobian(x).into()),
         );
         let jj_t = jacobian.clone() * jacobian.transpose();
@@ -443,13 +476,8 @@ pub fn fit<Model, X, Y>(
 where
     Model: FitModel,
     Model::Scalar: RealField,
-    <Model::ParamCount as Conv>::TNum: Sub<typenum::U1>,
-    X: AsMatrixView<Scalar = Model::Scalar>,
-    Y: AsMatrixView<Scalar = Model::Scalar, Points = X::Points>,
-    FitterUnit: FitBound<Model, X::Points>,
+    FitterUnit: FitBound<Model, X, Y>,
 {
-    let x = <X as AsMatrixView>::convert(&x);
-    let y = <Y as AsMatrixView>::convert(&y);
     FitterUnit::fit(minimizer, model, x, y, weights)
 }
 
@@ -458,7 +486,6 @@ where
 pub struct FitStat<Model: FitModelErrors>
 where
     Model::Scalar: RealField,
-    Model::ParamCount: Conv,
 {
     /// Report resulted from the fit
     pub report: MinimizationReport<Model::Scalar>,
@@ -538,15 +565,8 @@ pub fn fit_stat<Model, X, Y>(
 where
     Model: FitModelErrors,
     Model::Scalar: RealField,
-    <Model::ParamCount as Conv>::TNum: Sub<typenum::U1>,
-    X: AsMatrixView<Scalar = Model::Scalar>,
-    Y: AsMatrixView<Scalar = Model::Scalar, Points = X::Points>,
-    FitterUnit: FitErrBound<Model, X::Points>,
-    for<'r> FitterUnit: FitBound<&'r mut Model, X::Points>,
+    FitterUnit: FitErrBound<Model, X, Y>,
 {
-    let x = x.convert();
-    let y = y.convert();
-    let report = fit(&mut model, &x, &y, minimizer, weights);
-
+    let report = FitterUnit::fit(minimizer, &mut model, &x, &y, weights);
     FitterUnit::produce_stat(model, report, x, y)
 }
