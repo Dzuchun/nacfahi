@@ -326,32 +326,8 @@ where
     fn produce_stat(
         model: Model,
         report: MinimizationReport<Model::Scalar>,
-        x: Matrix<
-            Model::Scalar,
-            Points,
-            nalgebra::Const<1>,
-            nalgebra::ViewStorage<
-                '_,
-                Model::Scalar,
-                Points,
-                nalgebra::Const<1>,
-                nalgebra::Const<1>,
-                Points,
-            >,
-        >,
-        y: Matrix<
-            Model::Scalar,
-            Points,
-            nalgebra::Const<1>,
-            nalgebra::ViewStorage<
-                '_,
-                Model::Scalar,
-                Points,
-                nalgebra::Const<1>,
-                nalgebra::Const<1>,
-                Points,
-            >,
-        >,
+        x: DataMatrix<'_, Model, Points>,
+        y: DataMatrix<'_, Model, Points>,
     ) -> FitStat<Model> {
         let points =
             <Model::Scalar as NumCast>::from::<usize>(x.len()).expect("Too many data points");
