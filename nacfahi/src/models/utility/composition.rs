@@ -19,20 +19,21 @@ pub struct Composition<Inner, Outer> {
     pub outer: Outer,
 }
 
-impl<Scalar, Inner, Outer> FitModel<Scalar> for Composition<Inner, Outer>
+impl<Inner, Outer> FitModel for Composition<Inner, Outer>
 where
-    Scalar: Clone + Mul<Scalar, Output = Scalar>,
-    Inner: FitModel<Scalar>,
-    Outer: FitModel<Scalar> + FitModelXDeriv<Scalar>,
+    Inner: FitModel,
+    Outer: FitModelXDeriv<Scalar = Inner::Scalar>,
+    Inner::Scalar: Clone + Mul<Inner::Scalar, Output = Inner::Scalar>,
     <Inner::ParamCount as Conv>::TNum: Add<<Outer::ParamCount as Conv>::TNum>,
     Sum<<Inner::ParamCount as Conv>::TNum, <Outer::ParamCount as Conv>::TNum>: Conv<TNum = Sum<<Inner::ParamCount as Conv>::TNum, <Outer::ParamCount as Conv>::TNum>>
         + ArrayLength
         + Sub<<Inner::ParamCount as Conv>::TNum, Output = <Outer::ParamCount as Conv>::TNum>,
 {
+    type Scalar = Inner::Scalar;
     type ParamCount = Sum<<Inner::ParamCount as Conv>::TNum, <Outer::ParamCount as Conv>::TNum>;
 
     #[inline]
-    fn evaluate(&self, x: &Scalar) -> Scalar {
+    fn evaluate(&self, x: &Self::Scalar) -> Self::Scalar {
         let y = self.inner.evaluate(x);
         self.outer.evaluate(&y)
     }
@@ -40,9 +41,8 @@ where
     #[inline]
     fn jacobian(
         &self,
-        x: &Scalar,
-    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+        x: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         // y = inner(x, p_in)
         // z = outer(y, p_out)
         //
@@ -57,14 +57,14 @@ where
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(&mut self, new_params: GenericArray<Self::Scalar, Self::ParamCount>) {
         let (inner_params, outer_params) = GenericArray::split(new_params);
         self.inner.set_params(inner_params);
         self.outer.set_params(outer_params);
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(&self) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         GenericArray::concat(
             self.inner.get_params().into(),
             self.outer.get_params().into(),
@@ -72,31 +72,32 @@ where
     }
 }
 
-impl<Scalar: Mul<Output = Scalar>, Inner, Outer> FitModelXDeriv<Scalar>
-    for Composition<Inner, Outer>
+impl<Inner, Outer> FitModelXDeriv for Composition<Inner, Outer>
 where
-    Inner: FitModel<Scalar> + FitModelXDeriv<Scalar>,
-    Outer: FitModelXDeriv<Scalar>,
+    Inner: FitModelXDeriv,
+    Outer: FitModelXDeriv<Scalar = Inner::Scalar>,
+    Inner::Scalar: Mul<Output = Inner::Scalar>,
+    Self: FitModel<Scalar = Inner::Scalar>,
 {
     #[inline]
-    fn deriv_x(&self, x: &Scalar) -> Scalar {
+    fn deriv_x(&self, x: &Self::Scalar) -> Self::Scalar {
         let y = self.inner.evaluate(x);
         self.inner.deriv_x(x) * self.outer.deriv_x(&y)
     }
 }
 
 /// Convenience trait to construct [`Composition`]. Alternatively, just construct it manually.
-pub trait CompositionExt<Scalar>: Sized {
+pub trait CompositionExt: FitModel + Sized {
     /// Applies second model on top of current one.
-    fn compose<Outer: FitModel<Scalar> + FitModelXDeriv<Scalar>>(
+    fn compose<Outer: FitModelXDeriv<Scalar = Self::Scalar>>(
         self,
         outer: Outer,
     ) -> Composition<Self, Outer>;
 }
 
-impl<Scalar, Inner: FitModel<Scalar>> CompositionExt<Scalar> for Inner {
+impl<Inner: FitModel> CompositionExt for Inner {
     #[inline]
-    fn compose<Outer: FitModel<Scalar> + FitModelXDeriv<Scalar>>(
+    fn compose<Outer: FitModelXDeriv<Scalar = Self::Scalar>>(
         self,
         outer: Outer,
     ) -> Composition<Self, Outer> {

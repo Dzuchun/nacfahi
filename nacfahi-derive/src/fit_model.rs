@@ -8,30 +8,37 @@ use syn::{
     token::{Brace, Bracket, Paren, Pound},
     AngleBracketedGenericArguments, AssocType, Attribute, Block, DataStruct, DeriveInput, Expr,
     ExprArray, ExprCall, ExprMethodCall, ExprPath, FieldPat, FnArg, GenericArgument, GenericParam,
-    Generics, Ident, ImplItem, ImplItemFn, ImplItemType, ItemImpl, ItemUse, Local, LocalInit, Pat,
-    PatIdent, PatRest, PatStruct, PatTuple, PatTupleStruct, PatType, Path, PathArguments,
-    PathSegment, PredicateType, QSelf, ReturnType, Signature, Stmt, Token, TraitBound,
-    TraitBoundModifier, Type, TypeImplTrait, TypeParam, TypeParamBound, TypePath, TypeReference,
-    WhereClause, WherePredicate,
+    Generics, Ident, ImplItem, ImplItemFn, ImplItemType, ItemImpl, ItemUse, Local, LocalInit,
+    MacroDelimiter, Meta, MetaList, Pat, PatIdent, PatRest, PatStruct, PatTuple, PatTupleStruct,
+    PatType, Path, PathArguments, PathSegment, PredicateType, QSelf, ReturnType, Signature, Stmt,
+    Token, TraitBound, TraitBoundModifier, Type, TypeImplTrait, TypeParam, TypeParamBound,
+    TypePath, TypeReference, WhereClause, WherePredicate,
 };
 
-fn derive_unit(ident: Ident) -> TokenStream {
+fn derive_unit(ident: Ident, scalar: ScalarType) -> TokenStream {
     let fit_entity = fit_model();
+    let generic_param = if let ScalarType::Generic(ident) = &scalar {
+        Some(quote! {< #ident: ::num_traits::Zero >})
+    } else {
+        None
+    };
+    let scalar_type: Type = scalar.into();
     quote! {
-        impl<Scalar: ::num_traits::Zero> #fit_entity for #ident {
+        impl #generic_param #fit_entity for #ident {
+            type Scalar = #scalar_type;
             type ParamCount = ::typenum::uint::UTerm;
 
-            fn evaluate(&self, _: &Scalar) -> Scalar {
-                Scalar::zero()
+            fn evaluate(&self, _: & #scalar_type) -> #scalar_type {
+                <#scalar_type as ::num_traits::Zero>::zero()
             }
 
-            fn jacobian(&self, _: &Scalar) -> impl ::core::convert::Into<::generic_array::GenericArray<Scalar, Self::ParamCount>> {
+            fn jacobian(&self, _: & #scalar_type) -> impl ::core::convert::Into<::generic_array::GenericArray<#scalar_type, Self::ParamCount>> {
                 []
             }
 
-            fn set_params(&mut self, _: ::generic_array::GenericArray<Scalar, Self::ParamCount>) {}
+            fn set_params(&mut self, _: ::generic_array::GenericArray<#scalar_type, Self::ParamCount>) {}
 
-            fn get_params(&self) -> impl ::core::convert::Into<::generic_array::GenericArray<Scalar, Self::ParamCount>> {
+            fn get_params(&self) -> impl ::core::convert::Into<::generic_array::GenericArray<#scalar_type, Self::ParamCount>> {
                 []
             }
         }
@@ -41,11 +48,6 @@ fn derive_unit(ident: Ident) -> TokenStream {
 
 fn id(name: &str) -> Ident {
     Ident::new(name, proc_macro2::Span::call_site())
-}
-
-#[inline]
-fn scalar_ident() -> Ident {
-    id("Scalar")
 }
 
 fn simple_abs_path<'l>(parts: impl IntoIterator<Item = &'l str>) -> Path {
@@ -106,9 +108,40 @@ fn fit_model() -> Path {
     let mut path = simple_abs_path(["nacfahi", "models"]);
     path.segments.push(PathSegment {
         ident: id("FitModel"),
-        arguments: path_arg(ident_type(scalar_ident())),
+        arguments: PathArguments::None,
     });
     path
+}
+
+#[inline]
+fn assoc_fit_model(scalar_type: &Type) -> Path {
+    Path {
+        leading_colon: Some(<Token![::] as Default>::default()),
+        segments: Punctuated::from_iter([
+            PathSegment {
+                ident: id("nacfahi"),
+                arguments: PathArguments::None,
+            },
+            PathSegment {
+                ident: id("models"),
+                arguments: PathArguments::None,
+            },
+            PathSegment {
+                ident: id("FitModel"),
+                arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
+                    colon2_token: None,
+                    lt_token: <Token![<] as Default>::default(),
+                    args: Punctuated::from_iter([GenericArgument::AssocType(AssocType {
+                        ident: id("Scalar"),
+                        generics: None,
+                        eq_token: <Token![=] as Default>::default(),
+                        ty: scalar_type.clone(),
+                    })]),
+                    gt_token: <Token![>] as Default>::default(),
+                }),
+            },
+        ]),
+    }
 }
 
 fn fit_entity_sub(ty: Type, sub: Ident) -> TypePath {
@@ -215,7 +248,10 @@ fn type_sub_output(main_type: Type, types: &[Type]) -> Type {
     }
 }
 
-fn fit_entity_bounds(types: &[Type]) -> impl IntoIterator<Item = WherePredicate> + '_ {
+fn fit_entity_bounds<'t>(
+    types: &'t [Type],
+    scalar_type: &'t Type,
+) -> impl IntoIterator<Item = WherePredicate> + 't {
     types.iter().map(|t| {
         WherePredicate::Type(PredicateType {
             lifetimes: None,
@@ -225,7 +261,7 @@ fn fit_entity_bounds(types: &[Type]) -> impl IntoIterator<Item = WherePredicate>
                 paren_token: None,
                 modifier: syn::TraitBoundModifier::None,
                 lifetimes: None,
-                path: fit_model(),
+                path: assoc_fit_model(scalar_type),
             })]),
         })
     })
@@ -332,7 +368,7 @@ fn final_conv_bound(types: &[Type]) -> WherePredicate {
     })
 }
 
-fn bounds(types: &[Type], where_clause: Option<WhereClause>) -> WhereClause {
+fn bounds(types: &[Type], where_clause: Option<WhereClause>, scalar_type: Type) -> WhereClause {
     let mut res = where_clause.unwrap_or_else(|| WhereClause {
         where_token: <Token![where] as Default>::default(),
         predicates: Punctuated::new(),
@@ -340,7 +376,7 @@ fn bounds(types: &[Type], where_clause: Option<WhereClause>) -> WhereClause {
 
     res.predicates.push(WherePredicate::Type(PredicateType {
         lifetimes: None,
-        bounded_ty: ident_type(scalar_ident()),
+        bounded_ty: scalar_type.clone(),
         colon_token: <Token![:] as Default>::default(),
         bounds: Punctuated::from_iter([TypeParamBound::Trait(TraitBound {
             paren_token: None,
@@ -363,12 +399,12 @@ fn bounds(types: &[Type], where_clause: Option<WhereClause>) -> WhereClause {
                             colon2_token: None,
                             lt_token: <Token![<] as Default>::default(),
                             args: Punctuated::from_iter([
-                                GenericArgument::Type(ident_type(scalar_ident())),
+                                GenericArgument::Type(scalar_type.clone()),
                                 GenericArgument::AssocType(AssocType {
                                     ident: id("Output"),
                                     generics: None,
                                     eq_token: <Token![=] as Default>::default(),
-                                    ty: ident_type(scalar_ident()),
+                                    ty: scalar_type.clone(),
                                 }),
                             ]),
                             gt_token: <Token![>] as Default>::default(),
@@ -379,7 +415,8 @@ fn bounds(types: &[Type], where_clause: Option<WhereClause>) -> WhereClause {
         })]),
     }));
 
-    res.predicates.extend(fit_entity_bounds(types));
+    res.predicates
+        .extend(fit_entity_bounds(types, &scalar_type));
 
     add_bounds(types, |pred| res.predicates.push(pred));
 
@@ -464,7 +501,12 @@ fn add_function_path(lhs: Type, rhs: Type) -> ExprPath {
     }
 }
 
-fn evaluate_body(idents: &[Ident], types: &[Type], destruction_syntax: &Local) -> Vec<Stmt> {
+fn evaluate_body(
+    idents: &[Ident],
+    types: &[Type],
+    destruction_syntax: &Local,
+    scalar_type: &Type,
+) -> Vec<Stmt> {
     let mut operands = core::iter::zip(idents, types).map(|(ident, ty)| {
         Expr::Call(call_function(
             fit_entity_evaluate(ty.clone()),
@@ -481,8 +523,8 @@ fn evaluate_body(idents: &[Ident], types: &[Type], destruction_syntax: &Local) -
         sum = Expr::Call(ExprCall {
             attrs: Vec::new(),
             func: Box::new(Expr::Path(add_function_path(
-                ident_type(scalar_ident()),
-                ident_type(scalar_ident()),
+                scalar_type.clone(),
+                scalar_type.clone(),
             ))),
             paren_token: Paren::default(),
             args: Punctuated::from_iter([sum, operand]),
@@ -709,7 +751,7 @@ fn get_params_body(idents: &[Ident], types: &[Type], destruction_syntax: &Local)
     stmts
 }
 
-fn self_generic_array() -> Type {
+fn self_generic_array(scalar_type: Type) -> Type {
     Type::Path(TypePath {
         qself: None,
         path: Path {
@@ -725,7 +767,7 @@ fn self_generic_array() -> Type {
                         colon2_token: None,
                         lt_token: <Token![<] as Default>::default(),
                         args: Punctuated::from_iter([
-                            GenericArgument::Type(ident_type(scalar_ident())),
+                            GenericArgument::Type(scalar_type),
                             GenericArgument::Type(Type::Path(TypePath {
                                 qself: Some(q_self(
                                     Type::Path(TypePath {
@@ -764,6 +806,7 @@ fn derive_inner(
     destruction_syntax: Local,
     field_idents: &[Ident],
     field_types: &[Type],
+    scalar: ScalarType,
 ) -> ItemImpl {
     let type_params: Vec<_> = generics.params.iter().cloned().collect();
     // if there are arguments, use them in type description
@@ -784,26 +827,13 @@ fn derive_inner(
             gt_token: <Token![>] as Default>::default(),
         })
     };
-    // add scalar generic, if there's no parameter with same ident
-    if !generics
-        .params
-        .iter()
-        .any(|p| matches!(p, GenericParam::Type(t) if t.ident == scalar_ident()))
-    {
-        generics.params.insert(
-            0,
-            GenericParam::Type(TypeParam {
-                attrs: Vec::new(),
-                ident: scalar_ident(),
-                colon_token: None,
-                bounds: Punctuated::new(),
-                eq_token: None,
-                default: None,
-            }),
-        );
-    }
+
     // add the bounds
-    generics.where_clause = Some(bounds(field_types, generics.where_clause.take()));
+    generics.where_clause = Some(bounds(
+        field_types,
+        generics.where_clause.take(),
+        scalar.clone().into(),
+    ));
     // param count
     let param_count = ImplItem::Type(ImplItemType {
         attrs: Vec::new(),
@@ -814,6 +844,19 @@ fn derive_inner(
         generics: Generics::default(),
         eq_token: <Token![=] as Default>::default(),
         ty: type_sum(field_types),
+        semi_token: <Token![;] as Default>::default(),
+    });
+    // scalar type
+    let scalar_type: Type = scalar.clone().into();
+    let scalar_type_def = ImplItem::Type(ImplItemType {
+        attrs: Vec::new(),
+        vis: syn::Visibility::Inherited,
+        defaultness: None,
+        type_token: <Token![type] as Default>::default(),
+        ident: id("Scalar"),
+        generics: Generics::default(),
+        eq_token: <Token![=] as Default>::default(),
+        ty: scalar_type.clone(),
         semi_token: <Token![;] as Default>::default(),
     });
     // create method impls
@@ -873,19 +916,19 @@ fn derive_inner(
                         and_token: <Token![&] as Default>::default(),
                         lifetime: None,
                         mutability: None,
-                        elem: Box::new(ident_type(scalar_ident())),
+                        elem: Box::new(scalar_type.clone()),
                     })),
                 }),
             ]),
             variadic: None,
             output: ReturnType::Type(
                 <Token![->] as Default>::default(),
-                Box::new(ident_type(scalar_ident())),
+                Box::new(scalar_type.clone()),
             ),
         },
         block: Block {
             brace_token: Brace::default(),
-            stmts: evaluate_body(field_idents, field_types, &destruction_syntax),
+            stmts: evaluate_body(field_idents, field_types, &destruction_syntax, &scalar_type),
         },
     });
     let jacobian_impl = ImplItem::Fn(ImplItemFn {
@@ -944,7 +987,7 @@ fn derive_inner(
                         and_token: <Token![&] as Default>::default(),
                         lifetime: None,
                         mutability: None,
-                        elem: Box::new(ident_type(scalar_ident())),
+                        elem: Box::new(scalar_type.clone()),
                     })),
                 }),
             ]),
@@ -975,7 +1018,7 @@ fn derive_inner(
                                             colon2_token: None,
                                             lt_token: <Token![<] as Default>::default(),
                                             args: Punctuated::from_iter([GenericArgument::Type(
-                                                self_generic_array(),
+                                                self_generic_array(scalar_type.clone()),
                                             )]),
                                             gt_token: <Token![>] as Default>::default(),
                                         },
@@ -1044,7 +1087,7 @@ fn derive_inner(
                         subpat: None,
                     })),
                     colon_token: <Token![:] as Default>::default(),
-                    ty: Box::new(self_generic_array()),
+                    ty: Box::new(self_generic_array(scalar_type.clone())),
                 }),
             ]),
             variadic: None,
@@ -1123,7 +1166,7 @@ fn derive_inner(
                                             colon2_token: None,
                                             lt_token: <Token![<] as Default>::default(),
                                             args: Punctuated::from_iter([GenericArgument::Type(
-                                                self_generic_array(),
+                                                self_generic_array(scalar_type.clone()),
                                             )]),
                                             gt_token: <Token![>] as Default>::default(),
                                         },
@@ -1160,6 +1203,7 @@ fn derive_inner(
         brace_token: Brace::default(),
         items: vec![
             param_count,
+            scalar_type_def,
             evaluate_impl,
             jacobian_impl,
             set_params_impl,
@@ -1262,7 +1306,12 @@ fn destruct_tuple(struct_ident: &Ident, inds: impl IntoIterator<Item = usize>) -
     }
 }
 
-fn derive_tuple(ident: Ident, generics: Generics, types: Vec<(usize, Type)>) -> ItemImpl {
+fn derive_tuple(
+    ident: Ident,
+    generics: Generics,
+    types: Vec<(usize, Type)>,
+    scalar: ScalarType,
+) -> ItemImpl {
     let indices = types.iter().map(|(i, _)| *i);
     let field_idents: Vec<_> = types.iter().map(|(i, _)| tuple_ident(*i)).collect();
     let field_types: Vec<_> = types.iter().map(|(_, t)| t.clone()).collect();
@@ -1272,6 +1321,7 @@ fn derive_tuple(ident: Ident, generics: Generics, types: Vec<(usize, Type)>) -> 
         destruct_tuple(&ident, indices),
         field_idents.as_slice(),
         field_types.as_slice(),
+        scalar,
     )
 }
 
@@ -1325,7 +1375,12 @@ fn destruct_named(struct_ident: &Ident, field_names: impl IntoIterator<Item = Id
     */
 }
 
-fn derive_named(ident: Ident, generics: Generics, fields: Vec<(Ident, Type)>) -> ItemImpl {
+fn derive_named(
+    ident: Ident,
+    generics: Generics,
+    fields: Vec<(Ident, Type)>,
+    scalar: ScalarType,
+) -> ItemImpl {
     let field_idents: Vec<_> = fields.iter().map(|(name, _)| name.clone()).collect();
     let field_types: Vec<_> = fields.iter().map(|(_, ty)| ty.clone()).collect();
     let destruction = destruct_named(&ident, field_idents.iter().cloned());
@@ -1335,7 +1390,94 @@ fn derive_named(ident: Ident, generics: Generics, fields: Vec<(Ident, Type)>) ->
         destruction,
         field_idents.as_slice(),
         field_types.as_slice(),
+        scalar,
     )
+}
+
+#[derive(Clone)]
+enum ScalarType {
+    Generic(Ident),
+    Specified(Type),
+}
+
+impl From<ScalarType> for Type {
+    fn from(value: ScalarType) -> Self {
+        match value {
+            ScalarType::Generic(ident) => Type::Path(TypePath {
+                qself: None,
+                path: Path {
+                    leading_colon: None,
+                    segments: Punctuated::from_iter([PathSegment {
+                        ident,
+                        arguments: PathArguments::None,
+                    }]),
+                },
+            }),
+            ScalarType::Specified(typ) => typ,
+        }
+    }
+}
+
+fn filter_attr(Attribute { meta, .. }: &Attribute, filter_ident: &str) -> bool {
+    let Meta::List(MetaList {
+        path: Path {
+            leading_colon: None,
+            segments,
+        },
+        delimiter: MacroDelimiter::Paren(_),
+        ..
+    }) = meta
+    else {
+        return false;
+    };
+    let mut segments = segments.into_iter();
+    let Some(PathSegment {
+        ident,
+        arguments: PathArguments::None,
+    }) = segments.next()
+    else {
+        return false;
+    };
+    if segments.next().is_some() {
+        return false;
+    }
+    if ident != filter_ident {
+        return false;
+    }
+    true
+}
+
+const GENERIC_ATTR: &str = "scalar_generic";
+const SPECIFIED_ATTR: &str = "scalar_type";
+
+fn parse_scalar(generics: &Generics, attrs: &[Attribute]) -> ScalarType {
+    let scalar_generic = generics.params.iter().find_map(|param| match param {
+        GenericParam::Type(TypeParam { ident, .. }) if *ident == "Scalar" => Some(id("Scalar")),
+        _ => None,
+    });
+
+    let attr_generic = attrs
+        .iter()
+        .find(|attr| filter_attr(attr, GENERIC_ATTR))
+        .map(|attr| {
+            attr.parse_args::<Ident>()
+                .expect("scalar_generic attribute should contain a valid ident")
+        });
+
+    let specified = attrs
+        .iter()
+        .find(|attr| filter_attr(attr, SPECIFIED_ATTR))
+        .map(syn::Attribute::parse_args::<Type>)
+        .transpose()
+        .unwrap();
+
+    match (scalar_generic, attr_generic, specified) {
+        (None, None, None) => panic!("Please specify scalar type. See documentation for details"),
+        (_, None, Some(specified)) => ScalarType::Specified(specified),
+        (_, Some(attr_generic), None) => ScalarType::Generic(attr_generic),
+        (Some(scalar_generic), None, None) => ScalarType::Generic(scalar_generic),
+        (_, Some(attr_generic), Some(_)) => panic!("Scalar type should only be specified once; currently, you specify as generic ({}) and exact (whatever is in {} attribute) at the same time.", attr_generic, SPECIFIED_ATTR),
+    }
 }
 
 pub fn derive_sum(input: TokenStream) -> TokenStream {
@@ -1343,8 +1485,12 @@ pub fn derive_sum(input: TokenStream) -> TokenStream {
         ident,
         generics,
         data,
+        attrs,
         ..
     } = parse_macro_input!(input as DeriveInput);
+
+    let scalar_type = parse_scalar(&generics, &attrs);
+
     match data {
         syn::Data::Enum(_) => unimplemented!("Derivation for enum is not supported"),
         syn::Data::Union(_) => unimplemented!("Derivation for union is not supported"),
@@ -1355,7 +1501,7 @@ pub fn derive_sum(input: TokenStream) -> TokenStream {
                     .into_iter()
                     .map(|f| (f.ident.expect("Named fields always have an ident"), f.ty))
                     .collect();
-                derive_named(ident, generics, fields)
+                derive_named(ident, generics, fields, scalar_type)
                     .to_token_stream()
                     .into()
             }
@@ -1366,11 +1512,11 @@ pub fn derive_sum(input: TokenStream) -> TokenStream {
                     .enumerate()
                     .map(|(i, field)| (i, field.ty))
                     .collect();
-                derive_tuple(ident, generics, types)
+                derive_tuple(ident, generics, types, scalar_type)
                     .to_token_stream()
                     .into()
             }
-            syn::Fields::Unit => derive_unit(ident),
+            syn::Fields::Unit => derive_unit(ident, scalar_type),
         },
     }
 }

@@ -1,6 +1,7 @@
 use core::ops::{Mul, Sub};
 
 use generic_array::{functional::FunctionalSequence, ArrayLength, GenericArray, IntoArrayLength};
+use generic_array_storage::Conv;
 use num_traits::{Float, One, Pow};
 use typenum::{U0, U1, U2};
 
@@ -277,13 +278,13 @@ impl<Scalar: Float> DifferentiableFunction<Scalar> for ExpMap {
 ///
 /// You **can't** construct this struct manually, please use [`model_map`] for that. This is motivated by it's fields containing two separate objects (`value` and `derivative`), that are actually dependent and should be derived from each other.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ModelMap<Scalar, Inner, Map: DifferentiableFunction<Scalar>> {
+pub struct ModelMap<Inner: FitModel, Map: DifferentiableFunction<Inner::Scalar>> {
     /// Inner model.
     pub inner: Inner,
     /// Parameters of actual map
-    value_params: GenericArray<Scalar, Map::ValueParams>,
+    value_params: GenericArray<Inner::Scalar, Map::ValueParams>,
     /// Parameters of map's derivative
-    derivative_params: GenericArray<Scalar, Map::DerivativeParams>,
+    derivative_params: GenericArray<Inner::Scalar, Map::DerivativeParams>,
 }
 
 /// The only way to construct [`ModelMap`].
@@ -291,10 +292,10 @@ pub struct ModelMap<Scalar, Inner, Map: DifferentiableFunction<Scalar>> {
 /// Second argument *simultaneously* defines function and it's derivative used to map the model.
 ///
 /// Output type might seem complicated, but don't worry about that - the whole point is to keep it non-opaque
-pub fn model_map<Scalar, Inner: FitModel<Scalar>, Map: DifferentiableFunction<Scalar>>(
+pub fn model_map<Inner: FitModel, Map: DifferentiableFunction<Inner::Scalar>>(
     inner: Inner,
     map: Map,
-) -> ModelMap<Scalar, Inner, Map> {
+) -> ModelMap<Inner, Map> {
     let (value_params, derivative_params) = map.into_params();
     ModelMap {
         inner,
@@ -303,25 +304,24 @@ pub fn model_map<Scalar, Inner: FitModel<Scalar>, Map: DifferentiableFunction<Sc
     }
 }
 
-impl<Scalar, Inner, Map: DifferentiableFunction<Scalar>> FitModel<Scalar>
-    for ModelMap<Scalar, Inner, Map>
+impl<Inner, Map: DifferentiableFunction<Inner::Scalar>> FitModel for ModelMap<Inner, Map>
 where
-    Scalar: Clone + core::ops::Mul<Scalar, Output = Scalar>,
-    Inner: FitModel<Scalar>,
+    Inner: FitModel,
+    Inner::Scalar: Clone + core::ops::Mul<Inner::Scalar, Output = Inner::Scalar>,
 {
+    type Scalar = Inner::Scalar;
     type ParamCount = Inner::ParamCount;
 
     #[inline]
-    fn evaluate(&self, x: &Scalar) -> Scalar {
+    fn evaluate(&self, x: &Self::Scalar) -> Self::Scalar {
         Map::value(&self.value_params, &self.inner.evaluate(x))
     }
 
     #[inline]
     fn jacobian(
         &self,
-        x: &Scalar,
-    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+        x: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         let inner_eval = self.inner.evaluate(x);
         let inner_jacobian = self.inner.jacobian(x).into();
 
@@ -332,7 +332,7 @@ where
     #[inline]
     fn set_params(
         &mut self,
-        new_params: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+        new_params: GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) {
         self.inner.set_params(new_params);
     }
@@ -340,20 +340,20 @@ where
     #[inline]
     fn get_params(
         &self,
-    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         self.inner.get_params()
     }
 }
 
-impl<Scalar, Inner, Map> FitModelXDeriv<Scalar> for ModelMap<Scalar, Inner, Map>
+impl<Inner, Map> FitModelXDeriv for ModelMap<Inner, Map>
 where
-    Scalar: Mul<Output = Scalar>,
-    Inner: FitModel<Scalar> + FitModelXDeriv<Scalar>,
-    Map: DifferentiableFunction<Scalar>,
+    Inner: FitModelXDeriv,
+    Inner::Scalar: Mul<Output = Inner::Scalar>,
+    Map: DifferentiableFunction<Inner::Scalar>,
+    Self: FitModel<Scalar = Inner::Scalar, ParamCount = Inner::ParamCount>,
 {
     #[inline]
-    fn deriv_x(&self, x: &Scalar) -> Scalar {
+    fn deriv_x(&self, x: &Self::Scalar) -> Self::Scalar {
         let y = self.inner.evaluate(x);
         let y_x = self.inner.deriv_x(x);
         let z_y = Map::derivative(&self.derivative_params, &y);
@@ -363,7 +363,7 @@ where
 
 crate::test_model_derivative!(
     exponent_offset,
-    ModelMap<f64, Exponent<f64>, Addition<f64>>,
+    ModelMap<Exponent<f64>, Addition<f64>>,
     model_map(Exponent { a: 2.0, b: -0.242 }, Addition(-34.2)),
     [
         (0.0, -1.0),
@@ -377,7 +377,7 @@ crate::test_model_derivative!(
 
 crate::test_model_derivative!(
     exponent_multiplier,
-    ModelMap<f64, Exponent<f64>, Multiplier<f64>>,
+    ModelMap<Exponent<f64>, Multiplier<f64>>,
     model_map(Exponent { a: 2.0, b: -0.242 }, Multiplier(-3.232)),
     [
         (0.0, -1.0),
@@ -391,7 +391,7 @@ crate::test_model_derivative!(
 
 crate::test_model_derivative!(
     exponent_power,
-    ModelMap<f64, Exponent<f64>, Power<f64>>,
+    ModelMap<Exponent<f64>, Power<f64>>,
     model_map(Exponent { a: 2.0, b: -0.242 }, Power(3.0)),
     [
         (0.0, -1.0),
@@ -405,8 +405,15 @@ crate::test_model_derivative!(
 
 crate::test_model_derivative!(
     gaussian_power,
-    ModelMap<f64, Gaussian<f64>, Power<f64>>,
-    model_map(Gaussian { a: -3.0, s: 0.3, x_c: 3.0 }, Power(3.0)),
+    ModelMap<Gaussian<f64>, Power<f64>>,
+    model_map(
+        Gaussian {
+            a: -3.0,
+            s: 0.3,
+            x_c: 3.0
+        },
+        Power(3.0)
+    ),
     [
         (0.0, -1.0),
         (1.0, -4.0),

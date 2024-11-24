@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, unused)]
 
 use nacfahi::models::{
     basic::{Constant, Exponent, Gaussian, Linear},
@@ -7,19 +7,21 @@ use nacfahi::models::{
 use static_assertions::{assert_impl_all, assert_not_impl_all};
 
 #[derive(FitModelSum)]
+#[scalar_type(f64)]
 struct CustomModel {
     pub cst: Constant<f64>,
     pub exp: Exponent<f64>,
 }
 
-assert_impl_all!(CustomModel: FitModel<f64>);
-assert_not_impl_all!(CustomModel: FitModel<f32>);
+assert_impl_all!(CustomModel: FitModel<Scalar =f64>);
+assert_not_impl_all!(CustomModel: FitModel<Scalar =f32>);
 
 #[derive(FitModelSum)]
+#[scalar_type(f64)]
 struct CustomTupleModel(Constant<f64>, pub Exponent<f64>);
 
-assert_impl_all!(CustomTupleModel: FitModel<f64>);
-assert_not_impl_all!(CustomTupleModel: FitModel<f32>);
+assert_impl_all!(CustomTupleModel: FitModel<Scalar =f64>);
+assert_not_impl_all!(CustomTupleModel: FitModel<Scalar =f32>);
 
 #[derive(FitModelSum)]
 struct CustomConditionedModel<Scalar: Send>
@@ -30,9 +32,9 @@ where
     pub exp: Exponent<Scalar>,
 }
 
-assert_impl_all!(CustomConditionedModel<f64>: FitModel<f64>);
-assert_impl_all!(CustomConditionedModel<f32>: FitModel<f32>);
-assert_not_impl_all!(CustomConditionedModel<i32>: FitModel<f64>, FitModel<f32>);
+assert_impl_all!(CustomConditionedModel<f64>: FitModel<Scalar =f64>);
+assert_impl_all!(CustomConditionedModel<f32>: FitModel<Scalar =f32>);
+assert_not_impl_all!(CustomConditionedModel<i32>: FitModel);
 
 #[derive(FitModelSum)]
 struct WithBackground<Scalar, Signal> {
@@ -41,21 +43,22 @@ struct WithBackground<Scalar, Signal> {
     bg_exponent: Exponent<Scalar>,
 }
 
-assert_impl_all!(WithBackground<f64, Gaussian<f64>>: FitModel<f64>);
-assert_impl_all!(WithBackground<f32, Exponent<f32>>: FitModel<f32>);
-assert_not_impl_all!(WithBackground<f32, Exponent<f64>>: FitModel<f32>, FitModel<f64>);
+assert_impl_all!(WithBackground<f64, Gaussian<f64>>: FitModel<Scalar =f64>);
+assert_impl_all!(WithBackground<f32, Exponent<f32>>: FitModel<Scalar =f32>);
+assert_not_impl_all!(WithBackground<f32, Exponent<f64>>: FitModel);
 
 #[derive(FitModelSum)]
-struct Multipeak<Scalar, const N: usize, BG> {
+#[scalar_generic(T)]
+struct Multipeak<T, const N: usize, BG> {
     bg: BG,
-    signal: [Gaussian<Scalar>; N],
+    signal: [Gaussian<T>; N],
 }
 
-assert_impl_all!(Multipeak<f64, 0, Linear<f64>>: FitModel<f64>);
-assert_not_impl_all!(Multipeak<f64, 0, Linear<f32>>: FitModel<f64>, FitModel<f32>);
+assert_impl_all!(Multipeak<f64, 0, Linear<f64>>: FitModel<Scalar =f64>);
+assert_not_impl_all!(Multipeak<f64, 0, Linear<f32>>: FitModel);
 
-assert_impl_all!(Multipeak<f64, 10, Linear<f64>>: FitModel<f64>);
-assert_not_impl_all!(Multipeak<f64, 10, Linear<f32>>: FitModel<f64>, FitModel<f32>);
+assert_impl_all!(Multipeak<f64, 10, Linear<f64>>: FitModel<Scalar =f64>);
+assert_not_impl_all!(Multipeak<f64, 10, Linear<f32>>: FitModel);
 
 #[derive(FitModelSum)]
 struct BiMulti<Scalar, const EXPS: usize, const PEAKS: usize> {
@@ -63,6 +66,12 @@ struct BiMulti<Scalar, const EXPS: usize, const PEAKS: usize> {
     peaks: [Gaussian<Scalar>; PEAKS],
 }
 
-assert_impl_all!(BiMulti<f64, 0, 0>: FitModel<f64>);
-assert_impl_all!(BiMulti<f64, 1, 5>: FitModel<f64>);
-assert_impl_all!(BiMulti<f64, 12, 5>: FitModel<f64>);
+assert_impl_all!(BiMulti<f64, 0, 0>: FitModel<Scalar = f64>);
+assert_impl_all!(BiMulti<f64, 1, 5>: FitModel<Scalar = f64>);
+assert_impl_all!(BiMulti<f64, 12, 5>: FitModel<Scalar =f64>);
+
+#[derive(FitModelSum)]
+#[scalar_type(f64)]
+struct UnitModel;
+
+assert_impl_all!(UnitModel: FitModel<Scalar = f64>);

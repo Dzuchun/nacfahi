@@ -1,5 +1,7 @@
 use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
 
+use generic_array::GenericArray;
+use generic_array_storage::Conv;
 use typenum::U0;
 
 /// Model always having 0 parameters, regardless of model inside.
@@ -21,52 +23,50 @@ use typenum::U0;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Fixed<Model>(pub Model);
 
-impl<Scalar, Model> FitModel<Scalar> for Fixed<Model>
+impl<Model> FitModel for Fixed<Model>
 where
-    Model: FitModel<Scalar>,
+    Model: FitModel,
 {
+    type Scalar = Model::Scalar;
     type ParamCount = U0;
 
-    fn evaluate(&self, x: &Scalar) -> Scalar {
+    fn evaluate(&self, x: &Self::Scalar) -> Self::Scalar {
         self.0.evaluate(x)
     }
 
     fn jacobian(
         &self,
-        _x: &Scalar,
-    ) -> impl Into<generic_array::GenericArray<Scalar, Self::ParamCount>> {
+        _x: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         []
     }
 
-    fn set_params(&mut self, _new_params: generic_array::GenericArray<Scalar, Self::ParamCount>) {}
+    fn set_params(&mut self, _new_params: GenericArray<Self::Scalar, Self::ParamCount>) {}
 
-    fn get_params(&self) -> impl Into<generic_array::GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(&self) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         []
     }
 }
 
-impl<Scalar, Model> FitModelXDeriv<Scalar> for Fixed<Model>
+impl<Model> FitModelXDeriv for Fixed<Model>
 where
-    Model: FitModelXDeriv<Scalar>,
+    Model: FitModelXDeriv,
 {
-    fn deriv_x(&self, x: &Scalar) -> Scalar {
+    fn deriv_x(&self, x: &Self::Scalar) -> Self::Scalar {
         // derivative over parameters might be zero, but technically, there's no reason to zero-out this one
         self.0.deriv_x(x)
     }
 }
 
-impl<Scalar, Model> FitModelErrors<Scalar> for Fixed<Model>
+impl<Model> FitModelErrors for Fixed<Model>
 where
-    Self: FitModel<Scalar>,
+    Self: FitModel,
 {
     type OwnedModel = ();
 
     fn with_errors(
         &self,
-        _errors: generic_array::GenericArray<
-            Scalar,
-            <Self::ParamCount as generic_array_storage::Conv>::TNum,
-        >,
+        _errors: GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) -> Self::OwnedModel {
     }
 }

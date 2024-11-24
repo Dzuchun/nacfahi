@@ -1,6 +1,7 @@
 use core::ops::RangeBounds;
 
 use generic_array::{sequence::GenericSequence, GenericArray};
+use generic_array_storage::Conv;
 use num_traits::Zero;
 
 use crate::models::{FitModel, FitModelXDeriv};
@@ -14,40 +15,40 @@ pub struct Ranged<Inner, Range> {
     pub range: Range,
 }
 
-impl<Scalar, Inner, Range> FitModel<Scalar> for Ranged<Inner, Range>
+impl<Inner, Range> FitModel for Ranged<Inner, Range>
 where
-    Scalar: PartialOrd + Zero,
-    Range: RangeBounds<Scalar>,
-    Inner: FitModel<Scalar>,
+    Inner: FitModel,
+    Inner::Scalar: PartialOrd + Zero,
+    Range: RangeBounds<Inner::Scalar>,
 {
+    type Scalar = Inner::Scalar;
     type ParamCount = Inner::ParamCount;
 
     #[inline]
-    fn evaluate(&self, x: &Scalar) -> Scalar {
+    fn evaluate(&self, x: &Self::Scalar) -> Self::Scalar {
         if self.range.contains(x) {
             self.inner.evaluate(x)
         } else {
-            Scalar::zero()
+            Inner::Scalar::zero()
         }
     }
 
     #[inline]
     fn jacobian(
         &self,
-        x: &Scalar,
-    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+        x: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         if self.range.contains(x) {
             self.inner.jacobian(x).into()
         } else {
-            GenericArray::generate(|_| Scalar::zero())
+            GenericArray::generate(|_| Inner::Scalar::zero())
         }
     }
 
     #[inline]
     fn set_params(
         &mut self,
-        new_params: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+        new_params: GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) {
         self.inner.set_params(new_params);
     }
@@ -55,24 +56,23 @@ where
     #[inline]
     fn get_params(
         &self,
-    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         self.inner.get_params()
     }
 }
 
-impl<Scalar, Inner, Range> FitModelXDeriv<Scalar> for Ranged<Inner, Range>
+impl<Inner, Range> FitModelXDeriv for Ranged<Inner, Range>
 where
-    Scalar: PartialOrd + Zero,
-    Range: RangeBounds<Scalar>,
-    Inner: FitModel<Scalar> + FitModelXDeriv<Scalar>,
+    Inner: FitModelXDeriv,
+    Inner::Scalar: PartialOrd + Zero,
+    Range: RangeBounds<Inner::Scalar>,
 {
     #[inline]
-    fn deriv_x(&self, x: &Scalar) -> Scalar {
+    fn deriv_x(&self, x: &Self::Scalar) -> Self::Scalar {
         if self.range.contains(x) {
             self.inner.deriv_x(x)
         } else {
-            Scalar::zero()
+            Inner::Scalar::zero()
         }
     }
 }

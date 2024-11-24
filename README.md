@@ -167,7 +167,8 @@ struct CustomModel {
     peaks: [Gaussian<f64>; 3],
 }
 
-impl FitModel<f64> for CustomModel {
+impl FitModel for CustomModel {
+    type Scalar = f64;
     type ParamCount = typenum::U13; // oh, and you also need to manually compute total parameter count
 
     fn evaluate(&self, x: &f64) -> f64 {
@@ -205,13 +206,14 @@ Good news is - there's a macro for that!
 # use static_assertions::assert_impl_all;
 # 
 #[derive(FitModelSum)]
+#[scalar_type(f64)]
 struct ConstExponent {
     linear: Constant<f64>,
     exponent: Exponent<f64>,
     peaks: [Gaussian<f64>; 3],
 }
 # 
-# assert_impl_all!(ConstExponent: FitModel<f64>);
+# assert_impl_all!(ConstExponent: FitModel<Scalar = f64>);
 ```
 
 And it does exactly all of the above, except you can do a bunch of stuff that would be hard to implement manually.

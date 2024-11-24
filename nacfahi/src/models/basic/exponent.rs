@@ -2,6 +2,7 @@ use core::ops::Mul;
 
 use generic_array::GenericArray;
 use num_traits::{FloatConst, Pow};
+use typenum::U2;
 
 use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
 
@@ -14,60 +15,64 @@ pub struct Exponent<Scalar> {
     pub b: Scalar,
 }
 
-impl<Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + FloatConst>
-    FitModel<Scalar> for Exponent<Scalar>
+impl<Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + FloatConst> FitModel
+    for Exponent<Scalar>
 {
-    type ParamCount = typenum::U2;
+    type Scalar = Scalar;
+    type ParamCount = U2;
 
     #[inline]
-    fn evaluate(&self, x: &Scalar) -> Scalar {
-        self.a.clone() * (Scalar::E().pow(self.b.clone() * x.clone()))
+    fn evaluate(&self, x: &Self::Scalar) -> Scalar {
+        self.a.clone() * (Self::Scalar::E().pow(self.b.clone() * x.clone()))
     }
 
     #[inline]
     fn jacobian(
         &self,
-        x: &Scalar,
-    ) -> impl Into<generic_array::GenericArray<Scalar, Self::ParamCount>> {
+        x: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         // y = a * exp(bx)
         // - derivative over a is exp(bx)
         // - derivative over b is ax * exp(bx)
-        let e_x = Scalar::E().pow(self.b.clone() * x.clone());
+        let e_x = Self::Scalar::E().pow(self.b.clone() * x.clone());
         [e_x.clone(), self.a.clone() * x.clone() * e_x]
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: generic_array::GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(&mut self, new_params: GenericArray<Self::Scalar, Self::ParamCount>) {
         let [new_a, new_b] = new_params.into_array();
         self.a = new_a;
         self.b = new_b;
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<generic_array::GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(&self) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         [self.a.clone(), self.b.clone()]
     }
 }
 
 impl<Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + FloatConst>
-    FitModelXDeriv<Scalar> for Exponent<Scalar>
+    FitModelXDeriv for Exponent<Scalar>
 {
     #[inline]
-    fn deriv_x(&self, x: &Scalar) -> Scalar {
+    fn deriv_x(&self, x: &Self::Scalar) -> Self::Scalar {
         // y = a * exp(bx)
         // - derivative over x is ab * exp(bx)
         self.a.clone() * self.b.clone() * Scalar::E().pow(self.b.clone() * x.clone())
     }
 }
 
-impl<Scalar> FitModelErrors<Scalar> for Exponent<Scalar>
+impl<Scalar> FitModelErrors for Exponent<Scalar>
 where
     Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + FloatConst,
 {
     type OwnedModel = Self;
 
     #[inline]
-    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+    fn with_errors(
+        &self,
+        errors: GenericArray<Self::Scalar, Self::ParamCount>,
+    ) -> Self::OwnedModel {
         let [a, b] = errors.into_array();
         Exponent { a, b }
     }

@@ -109,16 +109,20 @@ impl<Scalar: Float + FloatConst> Gaussian<Scalar> {
     }
 }
 
-impl<Scalar: Float + FloatConst> FitModel<Scalar> for Gaussian<Scalar> {
+impl<Scalar: Float + FloatConst> FitModel for Gaussian<Scalar> {
+    type Scalar = Scalar;
     type ParamCount = U3;
 
     #[inline]
-    fn evaluate(&self, x: &Scalar) -> Scalar {
+    fn evaluate(&self, x: &Self::Scalar) -> Self::Scalar {
         gaussian(*x, self.x_c, self.s, self.a)
     }
 
     #[inline]
-    fn jacobian(&self, &x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn jacobian(
+        &self,
+        &x: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         [
             gaussian_deriv_x_c(x, self.x_c, self.s, self.a),
             gaussian_deriv_s(x, self.x_c, self.s, self.a),
@@ -127,7 +131,7 @@ impl<Scalar: Float + FloatConst> FitModel<Scalar> for Gaussian<Scalar> {
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(&mut self, new_params: GenericArray<Self::Scalar, Self::ParamCount>) {
         let [new_x_c, new_w, new_s] = new_params.into_array();
         self.x_c = new_x_c;
         self.s = new_w;
@@ -135,26 +139,29 @@ impl<Scalar: Float + FloatConst> FitModel<Scalar> for Gaussian<Scalar> {
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(&self) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         [self.x_c, self.s, self.a]
     }
 }
 
-impl<Scalar: Float + FloatConst> FitModelXDeriv<Scalar> for Gaussian<Scalar> {
+impl<Scalar: Float + FloatConst> FitModelXDeriv for Gaussian<Scalar> {
     #[inline]
-    fn deriv_x(&self, &x: &Scalar) -> Scalar {
+    fn deriv_x(&self, &x: &Self::Scalar) -> Self::Scalar {
         // derivatives over x and over x_c are the same, they are symmetrical
         gaussian_deriv_x_c(self.x_c, x, self.s, self.a)
     }
 }
 
-impl<Scalar> FitModelErrors<Scalar> for Gaussian<Scalar>
+impl<Scalar> FitModelErrors for Gaussian<Scalar>
 where
-    Gaussian<Scalar>: FitModel<Scalar, ParamCount = U3>,
+    Self: FitModel<Scalar = Scalar, ParamCount = U3>,
 {
     type OwnedModel = Gaussian<Scalar>;
 
-    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+    fn with_errors(
+        &self,
+        errors: GenericArray<Self::Scalar, Self::ParamCount>,
+    ) -> Self::OwnedModel {
         let [x_c, s, a] = errors.into_array();
         Gaussian { a, s, x_c }
     }
@@ -179,16 +186,20 @@ impl<Scalar: Float + FloatConst> GaussianS<Scalar> {
     }
 }
 
-impl<Scalar: Float + FloatConst> FitModel<Scalar> for GaussianS<Scalar> {
+impl<Scalar: Float + FloatConst> FitModel for GaussianS<Scalar> {
+    type Scalar = Scalar;
     type ParamCount = U2;
 
     #[inline]
-    fn evaluate(&self, x: &Scalar) -> Scalar {
+    fn evaluate(&self, x: &Self::Scalar) -> Self::Scalar {
         gaussian(*x, self.x_c, self.s, self.a)
     }
 
     #[inline]
-    fn jacobian(&self, &x: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn jacobian(
+        &self,
+        &x: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         [
             gaussian_deriv_x_c(x, self.x_c, self.s, self.a),
             gaussian_deriv_a(x, self.x_c, self.s, self.a),
@@ -196,21 +207,21 @@ impl<Scalar: Float + FloatConst> FitModel<Scalar> for GaussianS<Scalar> {
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(&mut self, new_params: GenericArray<Self::Scalar, Self::ParamCount>) {
         let [new_x_c, new_a] = new_params.into_array();
         self.x_c = new_x_c;
         self.a = new_a;
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(&self) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         [self.x_c, self.a]
     }
 }
 
-impl<Scalar: Float + FloatConst> FitModelXDeriv<Scalar> for GaussianS<Scalar> {
+impl<Scalar: Float + FloatConst> FitModelXDeriv for GaussianS<Scalar> {
     #[inline]
-    fn deriv_x(&self, x: &Scalar) -> Scalar {
+    fn deriv_x(&self, x: &Self::Scalar) -> Self::Scalar {
         // derivatives over x and over x_c are the same, they are symmetrical
         gaussian_deriv_x_c(*x, self.x_c, self.s, self.a)
     }
@@ -227,14 +238,17 @@ pub struct GaussianSErr<Scalar> {
     pub x_c_err: Scalar,
 }
 
-impl<Scalar> FitModelErrors<Scalar> for GaussianS<Scalar>
+impl<Scalar> FitModelErrors for GaussianS<Scalar>
 where
-    GaussianS<Scalar>: FitModel<Scalar, ParamCount = U2>,
+    Self: FitModel<Scalar = Scalar, ParamCount = U2>,
 {
     type OwnedModel = GaussianSErr<Scalar>;
 
     #[inline]
-    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+    fn with_errors(
+        &self,
+        errors: GenericArray<Self::Scalar, Self::ParamCount>,
+    ) -> Self::OwnedModel {
         let [a_err, x_c_err] = errors.into_array();
         GaussianSErr { a_err, x_c_err }
     }

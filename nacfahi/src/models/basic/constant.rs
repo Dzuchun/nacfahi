@@ -10,46 +10,53 @@ pub struct Constant<Scalar> {
     pub c: Scalar,
 }
 
-impl<Scalar: Clone + One> FitModel<Scalar> for Constant<Scalar> {
+impl<Scalar: Clone + One> FitModel for Constant<Scalar> {
+    type Scalar = Scalar;
     type ParamCount = U1;
 
     #[inline]
-    fn evaluate(&self, _: &Scalar) -> Scalar {
+    fn evaluate(&self, _: &Self::Scalar) -> Self::Scalar {
         self.c.clone()
     }
 
     #[inline]
-    fn jacobian(&self, _: &Scalar) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn jacobian(
+        &self,
+        _: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         [Scalar::one()]
     }
 
     #[inline]
-    fn set_params(&mut self, new_params: GenericArray<Scalar, Self::ParamCount>) {
+    fn set_params(&mut self, new_params: GenericArray<Self::Scalar, Self::ParamCount>) {
         let [new_c] = new_params.into_array();
         self.c = new_c;
     }
 
     #[inline]
-    fn get_params(&self) -> impl Into<GenericArray<Scalar, Self::ParamCount>> {
+    fn get_params(&self) -> impl Into<GenericArray<Self::Scalar, Self::ParamCount>> {
         [self.c.clone()]
     }
 }
 
-impl<Scalar: Clone + Zero + One> FitModelXDeriv<Scalar> for Constant<Scalar> {
+impl<Scalar: Clone + Zero + One> FitModelXDeriv for Constant<Scalar> {
     #[inline]
-    fn deriv_x(&self, _: &Scalar) -> Scalar {
+    fn deriv_x(&self, _: &Self::Scalar) -> Scalar {
         Scalar::zero()
     }
 }
 
-impl<Scalar> FitModelErrors<Scalar> for Constant<Scalar>
+impl<Scalar> FitModelErrors for Constant<Scalar>
 where
-    Self: FitModel<Scalar, ParamCount = U1>,
+    Self: FitModel<Scalar = Scalar, ParamCount = U1>,
 {
     type OwnedModel = Self;
 
     #[inline]
-    fn with_errors(&self, errors: GenericArray<Scalar, Self::ParamCount>) -> Self::OwnedModel {
+    fn with_errors(
+        &self,
+        errors: GenericArray<Self::Scalar, Self::ParamCount>,
+    ) -> Self::OwnedModel {
         let [c] = errors.into_array();
         Self { c }
     }

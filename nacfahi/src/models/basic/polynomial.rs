@@ -1,7 +1,9 @@
 use core::ops::{Add, Mul};
 
 use generic_array::{sequence::GenericSequence, GenericArray, IntoArrayLength};
+use generic_array_storage::Conv;
 use num_traits::{One, Zero};
+use typenum::Const;
 
 use crate::models::{FitModel, FitModelErrors, FitModelXDeriv};
 
@@ -15,13 +17,14 @@ pub struct Polynomial<const ORDER: usize, Scalar> {
 impl<
         const ORDER: usize,
         Scalar: Clone + Zero + One + Add<Output = Scalar> + Mul<Output = Scalar>,
-    > FitModel<Scalar> for Polynomial<ORDER, Scalar>
+    > FitModel for Polynomial<ORDER, Scalar>
 where
-    typenum::Const<ORDER>: IntoArrayLength,
+    Const<ORDER>: IntoArrayLength,
 {
-    type ParamCount = typenum::Const<ORDER>;
+    type Scalar = Scalar;
+    type ParamCount = Const<ORDER>;
 
-    fn evaluate(&self, x: &Scalar) -> Scalar {
+    fn evaluate(&self, x: &Self::Scalar) -> Self::Scalar {
         let mut res = Scalar::zero();
         let mut pars = self.params.as_slice(); // TODO: make this a static cycle
         while let Some((last, rest)) = pars.split_last() {
@@ -33,9 +36,8 @@ where
 
     fn jacobian(
         &self,
-        x: &Scalar,
-    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+        x: &Self::Scalar,
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         let mut res = GenericArray::generate(|_| Scalar::zero());
         let mut pow = Scalar::one();
         for i in 0..ORDER {
@@ -47,15 +49,14 @@ where
 
     fn set_params(
         &mut self,
-        new_params: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+        new_params: GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) {
         self.params = new_params.into_array();
     }
 
     fn get_params(
         &self,
-    ) -> impl Into<GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         self.params.clone()
     }
 }
@@ -63,9 +64,11 @@ where
 impl<
         const ORDER: usize,
         Scalar: Clone + Zero + One + Add<Output = Scalar> + Mul<Output = Scalar>,
-    > FitModelXDeriv<Scalar> for Polynomial<ORDER, Scalar>
+    > FitModelXDeriv for Polynomial<ORDER, Scalar>
+where
+    Self: FitModel<Scalar = Scalar, ParamCount = Const<ORDER>>,
 {
-    fn deriv_x(&self, x: &Scalar) -> Scalar {
+    fn deriv_x(&self, x: &Self::Scalar) -> Self::Scalar {
         let mut res = Scalar::zero();
         let mut pow = Scalar::one();
         let mut pow_i = Scalar::one();
@@ -78,16 +81,16 @@ impl<
     }
 }
 
-impl<const ORDER: usize, Scalar> FitModelErrors<Scalar> for Polynomial<ORDER, Scalar>
+impl<const ORDER: usize, Scalar> FitModelErrors for Polynomial<ORDER, Scalar>
 where
-    typenum::Const<ORDER>: IntoArrayLength,
-    Self: FitModel<Scalar, ParamCount = typenum::Const<ORDER>>,
+    Const<ORDER>: IntoArrayLength,
+    Self: FitModel<Scalar = Scalar, ParamCount = Const<ORDER>>,
 {
     type OwnedModel = Polynomial<ORDER, Scalar>;
 
     fn with_errors(
         &self,
-        errors: GenericArray<Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
+        errors: GenericArray<Self::Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
     ) -> Self::OwnedModel {
         Polynomial {
             params: errors.into_array(),

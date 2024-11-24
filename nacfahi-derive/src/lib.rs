@@ -5,7 +5,7 @@ use proc_macro::TokenStream;
 #[doc(hidden)]
 mod fit_model;
 
-#[proc_macro_derive(FitModelSum)]
+#[proc_macro_derive(FitModelSum, attributes(scalar_generic, scalar_type))]
 pub fn derive_fit_entity(input: TokenStream) -> TokenStream {
     fit_model::derive_sum(input)
 }

@@ -16,7 +16,8 @@ struct CustomModel {
     peaks: [Gaussian<f64>; 3],
 }
 
-impl FitModel<f64> for CustomModel {
+impl FitModel for CustomModel {
+    type Scalar = f64;
     type ParamCount = typenum::U13; // how many parameters, exactly?
 
     fn evaluate(&self, x: &f64) -> f64 {

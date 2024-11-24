@@ -16,7 +16,7 @@ use static_assertions::assert_impl_all;
 #[test]
 fn sharp_exponent() {
     type SharpExponent<Scalar> = Ranged<Exponent<Scalar>, RangeTo<Scalar>>;
-    assert_impl_all!(SharpExponent<f64>: FitModel<f64>);
+    assert_impl_all!(SharpExponent<f64>: FitModel);
 
     // this thing will be an exponent only present at x < 0
     let mut chirp: SharpExponent<f64> = Ranged {
