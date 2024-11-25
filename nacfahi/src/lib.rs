@@ -499,6 +499,50 @@ where
     pub covariance_matrix: GenericMatrix<Model::Scalar, Model::ParamCount, Model::ParamCount>,
 }
 
+impl<Model> FitStat<Model>
+where
+    Model: FitModelErrors,
+    Model::Scalar: RealField,
+{
+    /// Converts [`FitStat`] types, if there's no difference between them internally.
+    ///
+    /// For example, this works for `FitStat<&mut Model> -> FitStat<Mode>` convertion:
+    ///
+    /// ```rust
+    /// # use nacfahi::{models::basic::Constant, fit_stat, FitStat};
+    /// let x = [1.0, 3.0, -4.0];
+    /// let y = [-2.0, 5.2, -5.3];
+    ///
+    /// let mut model = Constant { c: 0.0 };
+    ///
+    /// let fit_stat: FitStat<&mut Constant<f64>> = fit_stat!(&mut model, x, y);
+    /// let fit_stat: FitStat<Constant<f64>> = fit_stat.into();
+    /// ```
+    #[inline]
+    pub fn into<OtherModel>(self) -> FitStat<OtherModel>
+    where
+        OtherModel: FitModelErrors<
+            Scalar = Model::Scalar,
+            ParamCount = Model::ParamCount,
+            OwnedModel = Model::OwnedModel,
+        >,
+    {
+        let FitStat {
+            report,
+            reduced_chi2,
+            errors,
+            covariance_matrix,
+        } = self;
+
+        FitStat {
+            report,
+            reduced_chi2,
+            errors,
+            covariance_matrix,
+        }
+    }
+}
+
 #[macro_export]
 #[cfg(doc)]
 #[doc = include_str!("../doc/fit_stat_macro.md")]
