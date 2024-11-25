@@ -14,8 +14,7 @@ fn fit_err_generic<const ORDER: usize, Len: ArrayLength>(
     y: GenericArray<f64, Len>,
 ) where
     Polynomial<ORDER, f64>: FitModelErrors<Scalar = f64>,
-    for<'r> FitterUnit:
-        FitErrBound<&'r mut Polynomial<ORDER, f64>, GenericArray<f64, Len>, GenericArray<f64, Len>>,
+    for<'r> FitterUnit: FitErrBound<&'r mut Polynomial<ORDER, f64>, GenericArray<f64, Len>>,
 {
     let mut model = Polynomial {
         params: [0.0f64; ORDER],

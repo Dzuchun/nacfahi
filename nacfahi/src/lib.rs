@@ -237,7 +237,7 @@ type DataPoints<Data> = <<Data as AsMatrixView>::Points as CreateProblem>::Nalg;
 /// A helper trait to simplify type bounds for a user. You probably should no see this.
 ///
 /// In case you do get a "type does not implement" type or error with this trait... I'm sorry.
-pub trait FitBound<Model: FitModel, X, Y>
+pub trait FitBound<Model: FitModel, X, Y = X>
 where
     Model::Scalar: RealField,
 {
@@ -311,7 +311,7 @@ where
 /// A helper trait to simplify type bounds for a user. You probably should no see this.
 ///
 /// In case you do get a "type does not implement" type or error with this trait... I'm sorry.
-pub trait FitErrBound<Model: FitModelErrors, X, Y>: FitBound<Model, X, Y>
+pub trait FitErrBound<Model: FitModelErrors, X, Y = X>: FitBound<Model, X, Y>
 where
     Model::Scalar: RealField,
 {
