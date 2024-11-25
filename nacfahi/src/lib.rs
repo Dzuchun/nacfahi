@@ -139,7 +139,7 @@ pub trait CreateProblem {
     fn create<'d, Model: FitModel + 'd>(
         x: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
         y: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
-        entity: Model,
+        model: Model,
         weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar + 'd,
     ) -> impl LeastSquaresProblem<Model::Scalar, Self::Nalg, <Model::ParamCount as Conv>::Nalg> + 'd
     where
@@ -158,7 +158,7 @@ where
     fn create<'d, Model: FitModel + 'd>(
         x: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
         y: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
-        entity: Model,
+        model: Model,
         weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar + 'd,
     ) -> impl LeastSquaresProblem<Model::Scalar, Self::Nalg, <Model::ParamCount as Conv>::Nalg> + 'd
     where
@@ -168,7 +168,7 @@ where
         DefaultAllocator: Allocator<Self::Nalg, <Model::ParamCount as Conv>::Nalg>,
     {
         ConstOptimizationProblem::<'d, Self, Model, _> {
-            entity,
+            model,
             x,
             y,
             weights,
@@ -185,7 +185,7 @@ where
     fn create<'d, Model: FitModel + 'd>(
         x: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
         y: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
-        entity: Model,
+        model: Model,
         weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar + 'd,
     ) -> impl LeastSquaresProblem<Model::Scalar, Self::Nalg, <Model::ParamCount as Conv>::Nalg> + 'd
     where
@@ -195,7 +195,7 @@ where
         DefaultAllocator: Allocator<Self::Nalg, <Model::ParamCount as Conv>::Nalg>,
     {
         ConstOptimizationProblem::<'d, Self, Model, _> {
-            entity,
+            model,
             x,
             y,
             weights,
@@ -209,7 +209,7 @@ impl CreateProblem for Dyn {
     fn create<'d, Model: FitModel + 'd>(
         x: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
         y: MatrixView<'d, Model::Scalar, Self::Nalg, nalgebra::U1>,
-        entity: Model,
+        model: Model,
         weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar + 'd,
     ) -> impl LeastSquaresProblem<Model::Scalar, Self::Nalg, <Model::ParamCount as Conv>::Nalg> + 'd
     where
@@ -219,7 +219,7 @@ impl CreateProblem for Dyn {
         DefaultAllocator: Allocator<Self::Nalg, <Model::ParamCount as Conv>::Nalg>,
     {
         DynOptimizationProblem::<'d, Model, _> {
-            entity,
+            model,
             x,
             y,
             weights,

@@ -413,7 +413,7 @@ macro_rules! test_model_derivative {
             let x = [$($x),*].convert();
             let y = [$($y),*].convert();
             let mut combined = T($crate::const_problem::ConstOptimizationProblem {
-                entity: model,
+                model,
                 x,
                 y,
                 weights: |_, _| 1.0,

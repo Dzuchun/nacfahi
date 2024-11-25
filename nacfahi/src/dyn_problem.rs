@@ -6,7 +6,7 @@ use nalgebra::{allocator::Allocator, ComplexField, DefaultAllocator, Dyn, OMatri
 use crate::models::FitModel;
 
 pub(crate) struct DynOptimizationProblem<'data, Model: FitModel, Weights> {
-    pub entity: Model,
+    pub model: Model,
     pub x: nalgebra::VectorView<'data, Model::Scalar, Dyn>,
     pub y: nalgebra::VectorView<'data, Model::Scalar, Dyn>,
     pub weights: Weights,
@@ -38,18 +38,18 @@ where
         let arr =
             GenericArray::<Model::Scalar, <Model::ParamCount as Conv>::TNum>::from_slice(slice)
                 .clone();
-        self.entity.set_params(arr);
+        self.model.set_params(arr);
     }
 
     fn params(&self) -> GenericMatrix<Model::Scalar, Model::ParamCount, typenum::U1> {
         let pars: GenericArray<Model::Scalar, <Model::ParamCount as Conv>::TNum> =
-            self.entity.get_params().into();
+            self.model.get_params().into();
         GenericMatrix::from_data(GenericArrayStorage(GenericArray::from_array([pars])))
     }
 
     fn residuals(&self) -> Option<OMatrix<Model::Scalar, Dyn, nalgebra::U1>> {
         let mat: OMatrix<Model::Scalar, Dyn, nalgebra::U1> = self.x.zip_map(&self.y, |x, y| {
-            (self.weights)(x, y) * (self.entity.evaluate(&x) - y)
+            (self.weights)(x, y) * (self.model.evaluate(&x) - y)
         });
         Some(mat)
     }
@@ -63,7 +63,7 @@ where
 
         for i_x in 0..self.x.len() {
             let jacobian_x: GenericArray<_, <Model::ParamCount as Conv>::TNum> =
-                self.entity.jacobian(&self.x[i_x]).into();
+                self.model.jacobian(&self.x[i_x]).into();
             let arr = jacobian_x.map(|v| GenericArray::<_, typenum::U1>::from_array([v]));
             let mat = GenericMatrix::<Model::Scalar, nalgebra::U1, Model::ParamCount>::from_data(
                 GenericArrayStorage(arr),
