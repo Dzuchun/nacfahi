@@ -128,10 +128,10 @@ let linear_y = y.map(f64::ln);
 // exponential model
 let mut expo_model = Exponent { a: 1.0, b: 0.0 };
 // expolinear (exponential mapped to linear)
-let expolinear = model_map(&mut expo_model, LnMap);
+let mut expolinear = model_map(&mut expo_model, LnMap);
 
 // fit!
-let report = fit!(expolinear, x, linear_y);
+let report = fit!(&mut expolinear, x, linear_y);
 
 # assert!(
 #     report.termination.was_successful(),

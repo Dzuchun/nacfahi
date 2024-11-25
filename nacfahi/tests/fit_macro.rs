@@ -98,19 +98,19 @@ fn custom_lavmar_weight() {
 fn weight_function_respected() {
     let x = [0.0];
     let y = [1.0];
-    let model = Constant { c: 0.0 };
+    let mut model = Constant { c: 0.0 };
     let weights = |_: f64, _: f64| panic!("Weight function panic");
 
-    let _ = fit!(model, x, y, weights = weights);
+    let _ = fit!(&mut model, x, y, weights = weights);
 }
 
 #[test]
 fn default_weights_unused() {
     let x = [0.0];
     let y = [1.0];
-    let model = Constant { c: 0.0 };
+    let mut model = Constant { c: 0.0 };
     #[allow(unused)]
     let default_weights = |_: f64, _: f64| panic!("Weight function panic");
 
-    let _ = fit!(model, x, y, weights = default_weights);
+    let _ = fit!(&mut model, x, y, weights = default_weights);
 }

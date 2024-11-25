@@ -246,7 +246,7 @@ where
     #[doc(hidden)]
     fn fit(
         minimizer: impl Borrow<LevenbergMarquardt<Model::Scalar>>,
-        model: impl BorrowMut<Model>,
+        model: &mut Model,
         x: impl Borrow<X>,
         y: impl Borrow<Y>,
         weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
@@ -290,7 +290,7 @@ where
     #[inline(always)]
     fn fit(
         minimizer: impl Borrow<LevenbergMarquardt<Model::Scalar>>,
-        mut model: impl BorrowMut<Model>,
+        model: &mut Model,
         x: impl Borrow<X>,
         y: impl Borrow<Y>,
         weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
@@ -321,7 +321,7 @@ where
         report: MinimizationReport<Model::Scalar>,
         x: X,
         y: Y,
-    ) -> FitStat<Model::Scalar, Model::ParamCount, Model::OwnedModel>;
+    ) -> FitStat<Model>;
 }
 
 impl<Model, X, Y> FitErrBound<Model, X, Y> for FitterUnit
@@ -354,7 +354,7 @@ where
         report: MinimizationReport<Model::Scalar>,
         x: X,
         y: Y,
-    ) -> FitStat<Model::Scalar, Model::ParamCount, Model::OwnedModel>
+    ) -> FitStat<Model>
     where
         Model: FitModelErrors,
     {
@@ -467,7 +467,7 @@ macro_rules! fit {
 /// **TIP**: The [`FitBound`] is an unfortunate outcome to strict type system. In case you deal with generic code, just put the `fit!` statement down, and add the bound you seemingly violate - you **should** be good after that.
 #[must_use = "Minimization report is really important to check if approximation happened at all"]
 pub fn fit<Model, X, Y>(
-    model: Model,
+    model: &mut Model,
     x: X,
     y: Y,
     minimizer: impl Borrow<LevenbergMarquardt<Model::Scalar>>,
@@ -483,17 +483,20 @@ where
 
 /// Result of [`function@fit_stat`].
 #[derive(Debug)]
-pub struct FitStat<Scalar: RealField, ParamCount: Conv, OwnedModel> {
+pub struct FitStat<Model: FitModelErrors>
+where
+    Model::Scalar: RealField,
+{
     /// Report resulted from the fit
-    pub report: MinimizationReport<Scalar>,
+    pub report: MinimizationReport<Model::Scalar>,
     /// $\chi^{2}/\test{dof}$ criteria. Should be about 1 for correct fit.
-    pub reduced_chi2: Scalar,
+    pub reduced_chi2: Model::Scalar,
     /// Type defined by model, containing parameter errors.
     ///
     /// This will usually be the model type itself, but there may be exceptions.
-    pub errors: OwnedModel,
+    pub errors: Model::OwnedModel,
     /// A parameter covariance matrix. If you don't know what this is, you can safely ignore it.
-    pub covariance_matrix: GenericMatrix<Scalar, ParamCount, ParamCount>,
+    pub covariance_matrix: GenericMatrix<Model::Scalar, Model::ParamCount, Model::ParamCount>,
 }
 
 #[macro_export]
@@ -553,17 +556,17 @@ macro_rules! fit_stat {
 /// **TIP**: The `FitDimensionsBound` is an unfortunate outcome to strict type system. In case you deal with generic code, just put the `fit!` statement down, and add the bound you seemingly violate - you **should** be good after that.
 #[must_use = "Covariance matrix are the only point to call this function specifically"]
 pub fn fit_stat<Model, X, Y>(
-    mut model: Model,
+    model: &mut Model,
     x: X,
     y: Y,
     minimizer: impl Borrow<LevenbergMarquardt<Model::Scalar>>,
     weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
-) -> FitStat<Model::Scalar, Model::ParamCount, Model::OwnedModel>
+) -> FitStat<Model>
 where
     Model: FitModelErrors,
     Model::Scalar: RealField,
     FitterUnit: FitErrBound<Model, X, Y>,
 {
-    let report = FitterUnit::fit(minimizer, &mut model, &x, &y, weights);
+    let report = FitterUnit::fit(minimizer, model.borrow_mut(), &x, &y, weights);
     FitterUnit::produce_stat(model, report, x, y)
 }
