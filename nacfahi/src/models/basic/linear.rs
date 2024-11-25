@@ -63,17 +63,14 @@ where
     }
 }
 
-impl<Scalar> FitModelErrors for Linear<Scalar>
+impl<Scalar: 'static> FitModelErrors for Linear<Scalar>
 where
     Scalar: Clone + Add<Output = Scalar> + Mul<Output = Scalar> + One,
 {
     type OwnedModel = Linear<Scalar>;
 
     #[inline]
-    fn with_errors(
-        &self,
-        errors: GenericArray<Self::Scalar, Self::ParamCount>,
-    ) -> Self::OwnedModel {
+    fn with_errors(errors: GenericArray<Self::Scalar, Self::ParamCount>) -> Self::OwnedModel {
         let [a, b] = errors.into_array();
         Linear { a, b }
     }

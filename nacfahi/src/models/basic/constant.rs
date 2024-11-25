@@ -46,17 +46,14 @@ impl<Scalar: Clone + Zero + One> FitModelXDeriv for Constant<Scalar> {
     }
 }
 
-impl<Scalar> FitModelErrors for Constant<Scalar>
+impl<Scalar: 'static> FitModelErrors for Constant<Scalar>
 where
     Self: FitModel<Scalar = Scalar, ParamCount = U1>,
 {
     type OwnedModel = Self;
 
     #[inline]
-    fn with_errors(
-        &self,
-        errors: GenericArray<Self::Scalar, Self::ParamCount>,
-    ) -> Self::OwnedModel {
+    fn with_errors(errors: GenericArray<Self::Scalar, Self::ParamCount>) -> Self::OwnedModel {
         let [c] = errors.into_array();
         Self { c }
     }

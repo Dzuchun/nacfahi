@@ -152,16 +152,13 @@ impl<Scalar: Float + FloatConst> FitModelXDeriv for Gaussian<Scalar> {
     }
 }
 
-impl<Scalar> FitModelErrors for Gaussian<Scalar>
+impl<Scalar: 'static> FitModelErrors for Gaussian<Scalar>
 where
     Self: FitModel<Scalar = Scalar, ParamCount = U3>,
 {
     type OwnedModel = Gaussian<Scalar>;
 
-    fn with_errors(
-        &self,
-        errors: GenericArray<Self::Scalar, Self::ParamCount>,
-    ) -> Self::OwnedModel {
+    fn with_errors(errors: GenericArray<Self::Scalar, Self::ParamCount>) -> Self::OwnedModel {
         let [x_c, s, a] = errors.into_array();
         Gaussian { a, s, x_c }
     }
@@ -238,17 +235,14 @@ pub struct GaussianSErr<Scalar> {
     pub x_c_err: Scalar,
 }
 
-impl<Scalar> FitModelErrors for GaussianS<Scalar>
+impl<Scalar: 'static> FitModelErrors for GaussianS<Scalar>
 where
     Self: FitModel<Scalar = Scalar, ParamCount = U2>,
 {
     type OwnedModel = GaussianSErr<Scalar>;
 
     #[inline]
-    fn with_errors(
-        &self,
-        errors: GenericArray<Self::Scalar, Self::ParamCount>,
-    ) -> Self::OwnedModel {
+    fn with_errors(errors: GenericArray<Self::Scalar, Self::ParamCount>) -> Self::OwnedModel {
         let [a_err, x_c_err] = errors.into_array();
         GaussianSErr { a_err, x_c_err }
     }

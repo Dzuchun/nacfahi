@@ -81,7 +81,7 @@ where
     }
 }
 
-impl<const ORDER: usize, Scalar> FitModelErrors for Polynomial<ORDER, Scalar>
+impl<const ORDER: usize, Scalar: 'static> FitModelErrors for Polynomial<ORDER, Scalar>
 where
     Const<ORDER>: IntoArrayLength,
     Self: FitModel<Scalar = Scalar, ParamCount = Const<ORDER>>,
@@ -89,7 +89,6 @@ where
     type OwnedModel = Polynomial<ORDER, Scalar>;
 
     fn with_errors(
-        &self,
         errors: GenericArray<Self::Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
     ) -> Self::OwnedModel {
         Polynomial {

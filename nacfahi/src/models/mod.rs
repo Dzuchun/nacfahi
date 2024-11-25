@@ -84,11 +84,10 @@ pub trait FitModelErrors: FitModel {
     /// Type of the error model
     ///
     /// Most of the time, this can be just `Self`.
-    type OwnedModel;
+    type OwnedModel: 'static;
 
     /// Creates new model representing errors from the error array
     fn with_errors(
-        &self,
         errors: GenericArray<Self::Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>,
     ) -> Self::OwnedModel;
 }
@@ -150,13 +149,12 @@ impl<Model: FitModelErrors> FitModelErrors for &'_ mut Model {
 
     #[inline]
     fn with_errors(
-        &self,
         errors: GenericArray<
             Model::Scalar,
             <Self::ParamCount as generic_array_storage::Conv>::TNum,
         >,
     ) -> Self::OwnedModel {
-        <Model as FitModelErrors>::with_errors(self, errors)
+        <Model as FitModelErrors>::with_errors(errors)
     }
 }
 
@@ -276,12 +274,10 @@ where
 
     #[inline]
     fn with_errors(
-        &self,
         errors: GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) -> Self::OwnedModel {
-        let self_array = GenericArray::from_array(self.each_ref());
         let unflat = unflatten::<_, _, <Model::ParamCount as Conv>::TNum>(errors);
-        self_array.zip(unflat, Model::with_errors).into_array()
+        unflat.map(Model::with_errors).into_array()
     }
 }
 

@@ -321,7 +321,7 @@ where
         report: MinimizationReport<Model::Scalar>,
         x: X,
         y: Y,
-    ) -> FitStat<Model>;
+    ) -> FitStat<Model::Scalar, Model::ParamCount, Model::OwnedModel>;
 }
 
 impl<Model, X, Y> FitErrBound<Model, X, Y> for FitterUnit
@@ -354,7 +354,7 @@ where
         report: MinimizationReport<Model::Scalar>,
         x: X,
         y: Y,
-    ) -> FitStat<Model>
+    ) -> FitStat<Model::Scalar, Model::ParamCount, Model::OwnedModel>
     where
         Model: FitModelErrors,
     {
@@ -402,7 +402,7 @@ where
         let param_errors = (0usize..u_params)
             .map(|i| Float::sqrt(covariance_matrix[(i, i)]))
             .collect();
-        let errors = model.with_errors(param_errors);
+        let errors = Model::with_errors(param_errors);
 
         FitStat {
             report,
@@ -483,64 +483,17 @@ where
 
 /// Result of [`function@fit_stat`].
 #[derive(Debug)]
-pub struct FitStat<Model: FitModelErrors>
-where
-    Model::Scalar: RealField,
-{
+pub struct FitStat<Scalar: RealField, ParamCount: Conv, OwnedModel> {
     /// Report resulted from the fit
-    pub report: MinimizationReport<Model::Scalar>,
+    pub report: MinimizationReport<Scalar>,
     /// $\chi^{2}/\test{dof}$ criteria. Should be about 1 for correct fit.
-    pub reduced_chi2: Model::Scalar,
+    pub reduced_chi2: Scalar,
     /// Type defined by model, containing parameter errors.
     ///
     /// This will usually be the model type itself, but there may be exceptions.
-    pub errors: Model::OwnedModel,
+    pub errors: OwnedModel,
     /// A parameter covariance matrix. If you don't know what this is, you can safely ignore it.
-    pub covariance_matrix: GenericMatrix<Model::Scalar, Model::ParamCount, Model::ParamCount>,
-}
-
-impl<Model> FitStat<Model>
-where
-    Model: FitModelErrors,
-    Model::Scalar: RealField,
-{
-    /// Converts [`FitStat`] types, if there's no difference between them internally.
-    ///
-    /// For example, this works for `FitStat<&mut Model> -> FitStat<Mode>` convertion:
-    ///
-    /// ```rust
-    /// # use nacfahi::{models::basic::Constant, fit_stat, FitStat};
-    /// let x = [1.0, 3.0, -4.0];
-    /// let y = [-2.0, 5.2, -5.3];
-    ///
-    /// let mut model = Constant { c: 0.0 };
-    ///
-    /// let fit_stat: FitStat<&mut Constant<f64>> = fit_stat!(&mut model, x, y);
-    /// let fit_stat: FitStat<Constant<f64>> = fit_stat.into();
-    /// ```
-    #[inline]
-    pub fn into<OtherModel>(self) -> FitStat<OtherModel>
-    where
-        OtherModel: FitModelErrors<
-            Scalar = Model::Scalar,
-            ParamCount = Model::ParamCount,
-            OwnedModel = Model::OwnedModel,
-        >,
-    {
-        let FitStat {
-            report,
-            reduced_chi2,
-            errors,
-            covariance_matrix,
-        } = self;
-
-        FitStat {
-            report,
-            reduced_chi2,
-            errors,
-            covariance_matrix,
-        }
-    }
+    pub covariance_matrix: GenericMatrix<Scalar, ParamCount, ParamCount>,
 }
 
 #[macro_export]
@@ -605,7 +558,7 @@ pub fn fit_stat<Model, X, Y>(
     y: Y,
     minimizer: impl Borrow<LevenbergMarquardt<Model::Scalar>>,
     weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
-) -> FitStat<Model>
+) -> FitStat<Model::Scalar, Model::ParamCount, Model::OwnedModel>
 where
     Model: FitModelErrors,
     Model::Scalar: RealField,

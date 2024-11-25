@@ -62,17 +62,14 @@ impl<Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + Float
     }
 }
 
-impl<Scalar> FitModelErrors for Exponent<Scalar>
+impl<Scalar: 'static> FitModelErrors for Exponent<Scalar>
 where
     Scalar: Clone + Mul<Output = Scalar> + Pow<Scalar, Output = Scalar> + FloatConst,
 {
     type OwnedModel = Self;
 
     #[inline]
-    fn with_errors(
-        &self,
-        errors: GenericArray<Self::Scalar, Self::ParamCount>,
-    ) -> Self::OwnedModel {
+    fn with_errors(errors: GenericArray<Self::Scalar, Self::ParamCount>) -> Self::OwnedModel {
         let [a, b] = errors.into_array();
         Exponent { a, b }
     }

@@ -65,7 +65,6 @@ where
     type OwnedModel = ();
 
     fn with_errors(
-        &self,
         _errors: GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) -> Self::OwnedModel {
     }

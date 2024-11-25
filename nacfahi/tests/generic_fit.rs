@@ -21,4 +21,8 @@ fn fit_err_generic<const ORDER: usize, Len: ArrayLength>(
     };
 
     let stat = fit_stat!(&mut model, x, y);
+
+    model.params[0] = 0.0; // test for "borrowed model"
+
+    core::hint::black_box(stat);
 }
