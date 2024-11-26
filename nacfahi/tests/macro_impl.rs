@@ -4,6 +4,7 @@ use nacfahi::models::{
     basic::{Constant, Exponent, Gaussian, Linear},
     FitModel, FitModelSum,
 };
+use num_traits::{Float, FloatConst};
 use static_assertions::{assert_impl_all, assert_not_impl_all};
 
 #[derive(FitModelSum)]
@@ -49,7 +50,7 @@ assert_not_impl_all!(WithBackground<f32, Exponent<f64>>: FitModel);
 
 #[derive(FitModelSum)]
 #[scalar_generic(T)]
-struct Multipeak<T, const N: usize, BG> {
+struct Multipeak<T: Float + FloatConst + core::iter::Sum, const N: usize, BG> {
     bg: BG,
     signal: [Gaussian<T>; N],
 }
@@ -61,7 +62,8 @@ assert_impl_all!(Multipeak<f64, 10, Linear<f64>>: FitModel<Scalar =f64>);
 assert_not_impl_all!(Multipeak<f64, 10, Linear<f32>>: FitModel);
 
 #[derive(FitModelSum)]
-struct BiMulti<Scalar, const EXPS: usize, const PEAKS: usize> {
+struct BiMulti<Scalar: Float + FloatConst + core::iter::Sum, const EXPS: usize, const PEAKS: usize>
+{
     pub bg: [Exponent<Scalar>; EXPS],
     peaks: [Gaussian<Scalar>; PEAKS],
 }

@@ -407,9 +407,9 @@ crate::test_model_derivative!(
     gaussian_power,
     ModelMap<Gaussian<f64>, Power<f64>>,
     model_map(
-        Gaussian {
+        Gaussian::<_> {
             a: -3.0,
-            s: 0.3,
+            sigma: 0.3,
             x_c: 3.0
         },
         Power(3.0)

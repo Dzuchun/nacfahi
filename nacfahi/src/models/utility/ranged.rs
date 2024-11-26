@@ -81,10 +81,10 @@ crate::test_model_derivative!(
     range_to,
     Ranged<Gaussian<f64>, core::ops::RangeTo<f64>>,
     Ranged {
-        inner: Gaussian {
-            x_c: 1.0,
+        inner: Gaussian::<_> {
             a: -3.0,
-            s: 0.3,
+            x_c: 1.0,
+            sigma: 0.3,
         },
         range: ..2.0,
     },
@@ -102,10 +102,10 @@ crate::test_model_derivative!(
     range_from,
     Ranged<Gaussian<f64>, core::ops::RangeFrom<f64>>,
     Ranged {
-        inner: Gaussian {
-            x_c: 1.0,
+        inner: Gaussian::<_> {
             a: -3.0,
-            s: 0.3,
+            x_c: 1.0,
+            sigma: 0.3,
         },
         range: 0.0..,
     },
@@ -123,10 +123,10 @@ crate::test_model_derivative!(
     range,
     Ranged<Gaussian<f64>, core::ops::Range<f64>>,
     Ranged {
-        inner: Gaussian {
-            x_c: 1.0,
+        inner: Gaussian::<_> {
             a: -3.0,
-            s: 0.3,
+            x_c: 1.0,
+            sigma: 0.3,
         },
         range: -0.5..3.0,
     },

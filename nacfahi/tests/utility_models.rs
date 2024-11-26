@@ -110,10 +110,10 @@ fn gaussian_over_exp() {
     });
 
     // composed model
-    let mut composed = Exponent { a: 0.0, b: 0.0 }.compose(Gaussian {
+    let mut composed = Exponent { a: 0.0, b: 0.0 }.compose(Gaussian::<_> {
         a: 0.4,
-        s: 0.2,
         x_c: 0.3,
+        sigma: 0.2,
     });
 
     // fit!
@@ -126,8 +126,8 @@ fn gaussian_over_exp() {
     assert_ulps_eq!(composed.inner.a, expected_a);
     assert_ulps_eq!(composed.inner.b, expected_b);
     assert_ulps_eq!(composed.outer.a, expected_s);
-    assert_ulps_eq!(composed.outer.s, expected_w);
-    assert_ulps_eq!(composed.outer.s, expected_x_c);
+    assert_ulps_eq!(composed.outer.sigma, expected_w);
+    assert_ulps_eq!(composed.outer.x_c, expected_x_c);
 }
 
 #[test]

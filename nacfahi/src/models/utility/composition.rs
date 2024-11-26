@@ -110,9 +110,9 @@ crate::test_model_derivative!(
     Composition::<Exponent<f64>, Gaussian<f64>>,
     Composition {
         inner: Exponent { a: 5.0, b: -0.1 },
-        outer: Gaussian {
+        outer: Gaussian::<_> {
             a: -2.0,
-            s: 0.4,
+            sigma: 0.4,
             x_c: 3.0,
         }
     },
@@ -130,9 +130,9 @@ crate::test_model_derivative!(
     gaussian_exponent,
     Composition::<Gaussian<f64>, Exponent<f64>>,
     Composition {
-        inner: Gaussian {
+        inner: Gaussian::<_> {
             a: -2.0,
-            s: 0.4,
+            sigma: 0.4,
             x_c: 3.0,
         },
         outer: Exponent { a: 5.0, b: -0.1 },
@@ -186,9 +186,9 @@ crate::test_model_derivative!(
     Composition::<Constant<f64>, Gaussian<f64>>,
     Composition {
         inner: Constant { c: 4.0 },
-        outer: Gaussian {
+        outer: Gaussian::<_> {
             a: -5.0,
-            s: 3.4,
+            sigma: 3.4,
             x_c: -2.1213
         },
     },
@@ -206,9 +206,9 @@ crate::test_model_derivative!(
     gaussian_linear,
     Composition::<Gaussian<f64>, Linear<f64>>,
     Composition {
-        inner: Gaussian {
+        inner: Gaussian::<_> {
             a: -5.0,
-            s: 3.4,
+            sigma: 3.4,
             x_c: -2.1213
         },
         outer: Linear {
