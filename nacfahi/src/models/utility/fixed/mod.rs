@@ -69,3 +69,6 @@ where
     ) -> Self::OwnedModel {
     }
 }
+
+#[cfg(test)]
+mod tests;

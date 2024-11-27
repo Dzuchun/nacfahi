@@ -76,15 +76,5 @@ where
     }
 }
 
-crate::test_model_derivative!(
-    Linear::<f64>,
-    Linear { a: 5.0, b: -4.0 },
-    [
-        (0.0, -1.0),
-        (1.0, -4.0),
-        (2.0, -5.0),
-        (3.0, 6.0),
-        (4.0, 2.0),
-        (5.0, 2.5)
-    ]
-);
+#[cfg(test)]
+mod tests;
