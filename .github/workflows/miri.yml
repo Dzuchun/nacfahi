@@ -22,4 +22,4 @@ jobs:
           components: miri
 
       - name: run miri
-        run: cargo +nightly miri test --many-seeds=0..8
+        run: MIRIFLAGS=-Zmiri-many-seeds=0..8 cargo +nightly miri test
