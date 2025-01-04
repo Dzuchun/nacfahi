@@ -3,9 +3,13 @@ use core::{
     ops::{Div, Mul},
 };
 
-use generic_array::{functional::FunctionalSequence, ArrayLength, GenericArray};
+use generic_array::{
+    functional::FunctionalSequence,
+    sequence::{Flatten, Unflatten},
+    ArrayLength, GenericArray,
+};
 use generic_array_storage::Conv;
-use typenum::{Prod, Quot, ToUInt};
+use typenum::{Prod, ToUInt};
 
 /// Basic building blocks for the models.
 pub mod basic;
@@ -158,34 +162,6 @@ impl<Model: FitModelErrors> FitModelErrors for &'_ mut Model {
     }
 }
 
-#[inline]
-#[doc(hidden)]
-fn flatten<T, R, C>(arr: GenericArray<GenericArray<T, R>, C>) -> GenericArray<T, Prod<R, C>>
-where
-    R: ArrayLength + core::ops::Mul<C>,
-    C: ArrayLength,
-    Prod<R, C>: ArrayLength,
-{
-    #[allow(unsafe_code)]
-    unsafe {
-        generic_array::const_transmute(arr)
-    }
-}
-
-#[inline]
-#[doc(hidden)]
-fn unflatten<T, P, R>(arr: GenericArray<T, P>) -> GenericArray<GenericArray<T, R>, Quot<P, R>>
-where
-    R: ArrayLength,
-    P: ArrayLength + core::ops::Div<R>,
-    Quot<P, R>: ArrayLength,
-{
-    #[allow(unsafe_code)]
-    unsafe {
-        generic_array::const_transmute(arr)
-    }
-}
-
 #[cfg(test)]
 static_assertions::assert_impl_all!([basic::Gaussian<f64>; 1]: FitModel);
 #[cfg(test)]
@@ -223,7 +199,7 @@ where
             GenericArray<Model::Scalar, <Model::ParamCount as Conv>::TNum>,
             TNum<N>,
         > = GenericArray::from_array(self.each_ref().map(|entity| entity.jacobian(x).into()));
-        flatten(jacobian_generic_arr)
+        jacobian_generic_arr.flatten()
     }
 
     #[inline]
@@ -231,7 +207,10 @@ where
         &mut self,
         new_params: GenericArray<Model::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) {
-        let unflat = unflatten::<_, _, <Model::ParamCount as Conv>::TNum>(new_params);
+        let unflat: GenericArray<
+            GenericArray<_, <<Model as FitModel>::ParamCount as Conv>::TNum>,
+            <typenum::Const<N> as ToUInt>::Output,
+        > = new_params.unflatten();
         let inners: &mut GenericArray<Model, TNum<N>> =
             GenericArray::from_mut_slice(self.as_mut_slice());
         inners.zip(unflat, Model::set_params);
@@ -245,7 +224,7 @@ where
             GenericArray<Model::Scalar, <Model::ParamCount as Conv>::TNum>,
             TNum<N>,
         > = GenericArray::from_array(self.each_ref().map(|entity| entity.get_params().into()));
-        flatten(jacobian_generic_arr)
+        jacobian_generic_arr.flatten()
     }
 }
 
@@ -276,7 +255,10 @@ where
     fn with_errors(
         errors: GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) -> Self::OwnedModel {
-        let unflat = unflatten::<_, _, <Model::ParamCount as Conv>::TNum>(errors);
+        let unflat: GenericArray<
+            GenericArray<_, <<Model as FitModel>::ParamCount as Conv>::TNum>,
+            <typenum::Const<N> as ToUInt>::Output,
+        > = errors.unflatten();
         unflat.map(Model::with_errors).into_array()
     }
 }
