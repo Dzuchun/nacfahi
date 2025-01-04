@@ -54,7 +54,7 @@ pub trait AsMatrixView {
     ) -> MatrixView<'_, Self::Scalar, <Self::Points as CreateProblem>::Nalg, nalgebra::U1>;
 }
 
-impl<'r, T: AsMatrixView + ?Sized> AsMatrixView for &'r T {
+impl<T: AsMatrixView + ?Sized> AsMatrixView for &T {
     type Scalar = T::Scalar;
     type Points = T::Points;
 
@@ -65,7 +65,7 @@ impl<'r, T: AsMatrixView + ?Sized> AsMatrixView for &'r T {
     }
 }
 
-impl<'r, T: AsMatrixView + ?Sized> AsMatrixView for &'r mut T {
+impl<T: AsMatrixView + ?Sized> AsMatrixView for &mut T {
     type Scalar = T::Scalar;
     type Points = T::Points;
 
