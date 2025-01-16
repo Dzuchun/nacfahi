@@ -1,7 +1,15 @@
 [package]
 name = "nacfahi-derive"
-version = "0.3.6"
+version = "0.3.7"
 edition = "2021"
+authors = ["Diachenko Artem", "Artem 34ty804krytp92e239eku@gmail.com"]
+description = "Derive proc-macro for `nacfahi`"
+documentation = "https://dzuchun.github.io/nacfahi/nacfahi/index.html"
+readme = "../README.md"
+repository = "https://github.com/Dzuchun/nacfahi"
+license = "MIT"
+keywords = ["proc-macro"]
+categories = []
 
 [lib]
 proc-macro = true
