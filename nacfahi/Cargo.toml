@@ -2,6 +2,7 @@
 name = "nacfahi"
 version = "0.3.6"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 generic-array = "1.1.1"
