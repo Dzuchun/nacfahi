@@ -2,7 +2,14 @@
 name = "nacfahi"
 version = "0.3.6"
 edition = "2021"
+authors = ["Diachenko Artem", "Artem 34ty804krytp92e239eku@gmail.com"]
+description = "Simpler, but less error-prone API for `levenberg-marquardt` optimization crate"
+documentation = "https://dzuchun.github.io/nacfahi/nacfahi/index.html"
+readme = "../README.md"
+repository = "https://github.com/Dzuchun/nacfahi"
 license = "MIT"
+keywords = ["api", "no_std", "no-std", "math", "statistics"]
+categories = ["mathematics", "no-std"]
 
 [dependencies]
 generic-array = "1.1.1"
