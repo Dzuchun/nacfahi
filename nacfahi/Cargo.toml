@@ -1,6 +1,6 @@
 [package]
 name = "nacfahi"
-version = "0.3.6"
+version = "0.3.7"
 edition = "2021"
 authors = ["Diachenko Artem", "Artem 34ty804krytp92e239eku@gmail.com"]
 description = "Simpler, but less error-prone API for `levenberg-marquardt` optimization crate"
@@ -12,13 +12,15 @@ keywords = ["api", "no_std", "no-std", "math", "statistics"]
 categories = ["mathematics", "no-std"]
 
 [dependencies]
-generic-array = "1.1.1"
-generic_array_storage = { git = "https://github.com/Dzuchun/generic_array_storage.git", tag = "v0.1.2" }
+generic-array = { version = "1.2.0", default-features = false }
+generic-array-storage = "0.2.0"
 levenberg-marquardt = "0.14.0"
-nalgebra = { version = "0.33.2", default-features = false, features = ["alloc"] }
+nalgebra = { version = "0.33.2", default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
-typenum = { version = "1.17.0", features = ["no_std", "const-generics"] }
-nacfahi-derive = { path = "../nacfahi-derive" }
+typenum = { version = "1.17.0", default-features = false, features = ["no_std"] }
+nacfahi-derive = "0.3.7"
+
+[features]
 
 [lints]
 workspace = true
