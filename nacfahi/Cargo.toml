@@ -1,6 +1,6 @@
 [package]
 name = "nacfahi"
-version = "0.3.7"
+version = "0.3.8"
 edition = "2021"
 authors = ["Diachenko Artem", "Artem 34ty804krytp92e239eku@gmail.com"]
 description = "Simpler, but less error-prone API for `levenberg-marquardt` optimization crate"
@@ -10,7 +10,7 @@ repository = "https://github.com/Dzuchun/nacfahi"
 license = "MIT"
 keywords = ["api", "no_std", "no-std", "math", "statistics"]
 categories = ["mathematics", "no-std"]
-exclude = ["katex.html", "tests", "**/tests.rs", "README.md"]
+exclude = ["tests", "**/tests.rs", "README.md"]
 
 [dependencies]
 generic-array = { version = "1.2.0", default-features = false }
