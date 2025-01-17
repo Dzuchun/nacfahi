@@ -10,7 +10,7 @@ repository = "https://github.com/Dzuchun/nacfahi"
 license = "MIT"
 keywords = ["api", "no_std", "no-std", "math", "statistics"]
 categories = ["mathematics", "no-std"]
-exclude = ["katex.html", "tests", "**/tests.rs"]
+exclude = ["katex.html", "tests", "**/tests.rs", "README.md"]
 
 [dependencies]
 generic-array = { version = "1.2.0", default-features = false }
