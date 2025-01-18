@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+#![cfg(feature = "alloc")]
 
 use approx::assert_ulps_eq;
 use nacfahi::{fit_stat, models::basic::Constant, FitStat, LevenbergMarquardt};
@@ -10,6 +11,7 @@ use rand::{thread_rng, Rng};
 fn constant_stdev() {
     // some data, x can be whatever
     const SAMPLE_SIZE: usize = 10_000;
+    #[allow(clippy::large_stack_arrays, reason = "It's a test!")]
     let x = [0.0f64; SAMPLE_SIZE];
     let y = core::array::from_fn::<f64, SAMPLE_SIZE, _>(|_| thread_rng().gen_range(0.0..=5.0));
 

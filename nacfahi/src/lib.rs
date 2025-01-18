@@ -4,6 +4,7 @@
 use core::borrow::{Borrow, BorrowMut};
 use core::ops::Sub;
 
+#[cfg(feature = "alloc")]
 use dyn_problem::DynOptimizationProblem;
 use generic_array::{ArrayLength, GenericArray};
 use models::{FitModel, FitModelErrors};
@@ -12,9 +13,10 @@ use const_problem::ConstOptimizationProblem;
 use generic_array_storage::{Conv, GenericArrayStorage, GenericMatrix, GenericMatrixFromExt};
 use levenberg_marquardt::LeastSquaresProblem;
 use nalgebra::allocator::{Allocator, Reallocator};
+#[cfg(feature = "alloc")]
+use nalgebra::Dyn;
 use nalgebra::{
-    ComplexField, DefaultAllocator, Dim, DimMax, DimMaximum, DimMin, DimName, Dyn, MatrixView,
-    RealField,
+    ComplexField, DefaultAllocator, Dim, DimMax, DimMaximum, DimMin, DimName, MatrixView, RealField,
 };
 
 use nalgebra::{Matrix, OMatrix};
@@ -38,6 +40,7 @@ pub mod models;
 #[doc(hidden)]
 mod const_problem;
 
+#[cfg(feature = "alloc")]
 #[doc(hidden)]
 mod dyn_problem;
 
@@ -90,6 +93,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<Scalar: nalgebra::Scalar> AsMatrixView for [Scalar] {
     type Scalar = Scalar;
     type Points = Dyn;
@@ -203,6 +207,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl CreateProblem for Dyn {
     type Nalg = Self;
 

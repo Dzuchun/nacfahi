@@ -29,6 +29,7 @@ fn array() {
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn slice() {
     use approx::assert_ulps_eq;
     use nacfahi::{models::basic::Linear, *};
@@ -109,6 +110,7 @@ fn matrix_view() {
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn dyn_matrix() {
     use approx::assert_ulps_eq;
     use nacfahi::{models::basic::Linear, *};

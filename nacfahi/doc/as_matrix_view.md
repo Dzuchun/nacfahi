@@ -31,8 +31,11 @@ let report = fit!(&mut line, x, y);
 # assert_ulps_eq!(line.b, 1.0);
 ```
 
-- A slice
+- A slice (requires `alloc` feature enabled)
+
 ```rust
+# #[cfg(feature = "alloc")]
+# {
 # use approx::assert_ulps_eq;
 # use nacfahi::{models::basic::Linear, *};
 # 
@@ -55,6 +58,7 @@ let report = fit!(&mut line, x, y);
 # // check that model parameters have expected values
 # assert_ulps_eq!(line.a, 2.0);
 # assert_ulps_eq!(line.b, 1.0);
+# }
 ```
 
 - **Column** matrix
@@ -113,9 +117,11 @@ let report = fit!(&mut line, x.column(0), y.column(0));
 # assert_ulps_eq!(line.b, 1.0);
 ```
 
-- **Column** dynamic vector
+- **Column** dynamic vector (required `alloc` feature enabled)
 
 ```rust
+# #[cfg(feature = "alloc")]
+# {
 # use approx::assert_ulps_eq;
 # use nacfahi::{models::basic::Linear, *};
 # use nalgebra::{Dyn, Vector};
@@ -139,6 +145,7 @@ let report = fit!(&mut line, x, y);
 # // check that model parameters have expected values
 # assert_ulps_eq!(line.a, 2.0);
 # assert_ulps_eq!(line.b, 1.0);
+# }
 ```
 
 - A [`GenericArray`]:

@@ -22,6 +22,7 @@ typenum = { version = "1.17.0", default-features = false, features = ["no_std"] 
 nacfahi-derive = "0.3.7"
 
 [features]
+alloc = ["nalgebra/alloc"]
 
 [lints]
 workspace = true
