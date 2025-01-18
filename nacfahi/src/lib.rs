@@ -15,9 +15,8 @@ use levenberg_marquardt::LeastSquaresProblem;
 use nalgebra::allocator::{Allocator, Reallocator};
 #[cfg(feature = "alloc")]
 use nalgebra::Dyn;
-use nalgebra::{
-    ComplexField, DefaultAllocator, Dim, DimMax, DimMaximum, DimMin, DimName, MatrixView, RealField,
-};
+use nalgebra::{DefaultAllocator, Dim, DimMax, DimMaximum, DimMin, DimName, MatrixView};
+pub use simba::scalar::{ComplexField, RealField};
 
 use nalgebra::{Matrix, OMatrix};
 use typenum::Unsigned;

@@ -4,12 +4,12 @@ use core::f64;
 use std::ops::RangeTo;
 
 use approx::{assert_ulps_eq, assert_ulps_ne};
-use models::{
+use nacfahi::fit;
+use nacfahi::models::{
     basic::{Exponent, Gaussian, Linear},
     utility::{model_map, CompositionExt, Fixed, LnMap, Ranged},
     FitModel,
 };
-use nacfahi::*;
 use num_traits::Float;
 use static_assertions::assert_impl_all;
 

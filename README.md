@@ -118,7 +118,7 @@ let _ramp = Ranged {
 - [`ModelMap`](models::utility::ModelMap) \(UNTESTED!\) is **supposed** to additionally map the model, allowing fits in mapped spaces. For example, while fitting to a single exponent, you might want to use [`LnMap`](models::utility::LnMap) to do a linear fit:
 
 ```rust
-# use nacfahi::{models::{basic::Exponent, utility::{model_map, LnMap}}, *};
+# use nacfahi::{models::{basic::Exponent, utility::{model_map, LnMap}}, fit};
 # use num_traits::Float;
 # use approx::assert_ulps_eq;
 # 
