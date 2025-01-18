@@ -102,7 +102,7 @@ dependencies = [
 
 [[package]]
 name = "nacfahi"
-version = "0.3.8"
+version = "0.4.0"
 dependencies = [
  "approx",
  "generic-array",
