@@ -3,9 +3,8 @@
 use generic_array::{ArrayLength, GenericArray};
 use generic_array_storage::Conv;
 use nacfahi::{
-    fit_stat,
-    models::{basic::Polynomial, FitModelErrors},
-    FitBound, FitErrBound, FitterUnit, LevenbergMarquardt,
+    FitBound, FitErrBound, FitterUnit, LevenbergMarquardt, fit_stat,
+    models::{FitModelErrors, basic::Polynomial},
 };
 use typenum::Const;
 

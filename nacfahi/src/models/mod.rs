@@ -4,9 +4,9 @@ use core::{
 };
 
 use generic_array::{
+    ArrayLength, GenericArray,
     functional::FunctionalSequence,
     sequence::{Flatten, Unflatten},
-    ArrayLength, GenericArray,
 };
 use generic_array_storage::Conv;
 use typenum::{Prod, ToUInt};
@@ -288,7 +288,7 @@ macro_rules! test_model_derivative {
 #[macro_export]
 #[doc = include_str!("../../doc/test_model_derivative.md")]
 macro_rules! test_model_derivative {
-    ($isolation:ident, $name:path, $model:expr, [$(($x:expr, $y:expr)),*]) => {
+    ($isolation:ident, $name:path, $model:expr_2021, [$(($x:expr_2021, $y:expr_2021)),*]) => {
         #[cfg(test)]
         #[doc(hidden)]
         mod $isolation {
@@ -297,7 +297,7 @@ macro_rules! test_model_derivative {
             $crate::test_model_derivative!($name, $model, [$(($x, $y)), *]);
         }
     };
-    ($name:path, $model:expr, [$(($x:expr, $y:expr)),*]) => {
+    ($name:path, $model:expr_2021, [$(($x:expr_2021, $y:expr_2021)),*]) => {
         #[cfg(test)]
         #[test]
         #[cfg_attr(miri, ignore = "Miri gets angry because of stacked borrows rules somewhere inside nalgebra's storage. The thing is, my own storage implementation IS USED NEARBY (generic_array_storage one), so I AM SCARED PWEASE DON'T HUWT MW")]

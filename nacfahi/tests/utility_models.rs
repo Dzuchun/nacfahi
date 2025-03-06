@@ -6,9 +6,9 @@ use std::ops::RangeTo;
 use approx::{assert_ulps_eq, assert_ulps_ne};
 use nacfahi::fit;
 use nacfahi::models::{
-    basic::{Exponent, Gaussian, Linear},
-    utility::{model_map, CompositionExt, Fixed, LnMap, Ranged},
     FitModel,
+    basic::{Exponent, Gaussian, Linear},
+    utility::{CompositionExt, Fixed, LnMap, Ranged, model_map},
 };
 use num_traits::Float;
 use static_assertions::assert_impl_all;

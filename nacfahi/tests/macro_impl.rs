@@ -1,8 +1,8 @@
 #![allow(missing_docs, unused)]
 
 use nacfahi::models::{
-    basic::{Constant, Exponent, Gaussian, Linear},
     FitModel, FitModelSum,
+    basic::{Constant, Exponent, Gaussian, Linear},
 };
 use num_traits::{Float, FloatConst};
 use static_assertions::{assert_impl_all, assert_not_impl_all};

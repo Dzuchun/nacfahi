@@ -12,9 +12,9 @@ use models::{FitModel, FitModelErrors};
 use const_problem::ConstOptimizationProblem;
 use generic_array_storage::{Conv, GenericArrayStorage, GenericMatrix, GenericMatrixFromExt};
 use levenberg_marquardt::LeastSquaresProblem;
-use nalgebra::allocator::{Allocator, Reallocator};
 #[cfg(feature = "alloc")]
 use nalgebra::Dyn;
+use nalgebra::allocator::{Allocator, Reallocator};
 use nalgebra::{DefaultAllocator, Dim, DimMax, DimMaximum, DimMin, DimName, MatrixView};
 pub use simba::scalar::{ComplexField, RealField};
 
@@ -263,27 +263,23 @@ where
     Model::Scalar: RealField + Float,
     Model::ParamCount: Conv,
     <Model::ParamCount as Conv>::TNum: Sub<typenum::U1>,
-
     DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg>,
     DefaultAllocator: Allocator<DataPoints<X>>,
     DefaultAllocator: Allocator<DataPoints<X>, <Model::ParamCount as Conv>::Nalg>,
-
     X: AsMatrixView<Scalar = Model::Scalar>,
     X::Points: CreateProblem,
-
     Y: AsMatrixView<Scalar = Model::Scalar, Points = X::Points>,
-
     DataPoints<X>:
         DimMax<<Model::ParamCount as Conv>::Nalg> + DimMin<<Model::ParamCount as Conv>::Nalg>,
     <Model::ParamCount as Conv>::Nalg:
         DimMax<<X::Points as CreateProblem>::Nalg> + DimMin<<X::Points as CreateProblem>::Nalg>,
     DefaultAllocator: Reallocator<
-        Model::Scalar,
-        DataPoints<X>,
-        <Model::ParamCount as Conv>::Nalg,
-        DimMaximum<DataPoints<X>, <Model::ParamCount as Conv>::Nalg>,
-        <Model::ParamCount as Conv>::Nalg,
-    >,
+            Model::Scalar,
+            DataPoints<X>,
+            <Model::ParamCount as Conv>::Nalg,
+            DimMaximum<DataPoints<X>, <Model::ParamCount as Conv>::Nalg>,
+            <Model::ParamCount as Conv>::Nalg,
+        >,
 {
     type Points = <<X as AsMatrixView>::Points as CreateProblem>::Nalg;
 
@@ -331,17 +327,13 @@ where
 impl<Model, X, Y> FitErrBound<Model, X, Y> for FitterUnit
 where
     Self: FitBound<Model, X, Y>,
-
     Model: FitModelErrors,
     Model::Scalar: RealField + Float,
     Model::ParamCount: Conv,
     <Model::ParamCount as Conv>::TNum: Sub<typenum::U1>,
-
     X: AsMatrixView<Scalar = Model::Scalar>,
     X::Points: CreateProblem,
-
     Y: AsMatrixView<Scalar = Model::Scalar, Points = X::Points>,
-
     DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg>
         + Allocator<DataPoints<X>>
         + Allocator<<Model::ParamCount as Conv>::Nalg, DataPoints<X>>
@@ -440,7 +432,7 @@ macro_rules! fit {
 #[cfg(not(doc))]
 #[doc = include_str!("../doc/fit_macro.md")]
 macro_rules! fit {
-    ($model:expr, $x:expr, $y:expr $(, $par_name:ident = $par_value:expr) *) => {{
+    ($model:expr_2021, $x:expr_2021, $y:expr_2021 $(, $par_name:ident = $par_value:expr_2021) *) => {{
         use ::nacfahi::default_weights;
         let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
         let model = $model;
@@ -449,14 +441,14 @@ macro_rules! fit {
         ::nacfahi::fit!(@ $($par_name = $par_value),*; model = model, x = x, y = y, minimizer = minimizer, weights = default_weights)
     }};
 
-    (@ minimizer = $new_minimizer:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
+    (@ minimizer = $new_minimizer:expr_2021 $(, $par_name:ident = $par_value:expr_2021) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
         use ::core::borrow::Borrow;
         let tmp = $new_minimizer;
         $minimizer = tmp.borrow();
         ::nacfahi::fit!(@ $($par_name = $par_value),*; model = $model, x = $x, y = $y, minimizer = $minimizer, weights = $weights)
     }};
 
-    (@ weights = $new_weights:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
+    (@ weights = $new_weights:expr_2021 $(, $par_name:ident = $par_value:expr_2021) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
         let weights = $new_weights;
         ::nacfahi::fit!(@ $($par_name = $par_value),*; model = $model, x = $x, y = $y, minimizer = $minimizer, weights = weights)
     }};
@@ -520,7 +512,7 @@ macro_rules! fit_stat {
 #[cfg(not(doc))]
 #[doc = include_str!("../doc/fit_stat_macro.md")]
 macro_rules! fit_stat {
-    ($model:expr, $x:expr, $y:expr $(, $par_name:ident = $par_value:expr) *) => {{
+    ($model:expr_2021, $x:expr_2021, $y:expr_2021 $(, $par_name:ident = $par_value:expr_2021) *) => {{
         use ::nacfahi::default_weights;
         let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
         let model = $model;
@@ -529,14 +521,14 @@ macro_rules! fit_stat {
         ::nacfahi::fit_stat!(@ $($par_name = $par_value),*; model = model, x = x, y = y, minimizer = minimizer, weights = default_weights)
     }};
 
-    (@ minimizer = $new_minimizer:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
+    (@ minimizer = $new_minimizer:expr_2021 $(, $par_name:ident = $par_value:expr_2021) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
         use ::core::borrow::Borrow;
         let tmp = $new_minimizer;
         $minimizer = tmp.borrow();
         ::nacfahi::fit_stat!(@ $($par_name = $par_value),*; model = $model, x = $x, y = $y, minimizer = $minimizer, weights = $weights)
     }};
 
-    (@ weights = $new_weights:expr $(, $par_name:ident = $par_value:expr) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
+    (@ weights = $new_weights:expr_2021 $(, $par_name:ident = $par_value:expr_2021) *; model = $model:ident, x = $x:ident, y = $y:ident, minimizer = $minimizer:ident, weights = $weights:ident) => {{
         let weights = $new_weights;
         ::nacfahi::fit_stat!(@ $($par_name = $par_value),*; model = $model, x = $x, y = $y, minimizer = $minimizer, weights = weights)
     }};

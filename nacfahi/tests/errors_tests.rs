@@ -2,9 +2,9 @@
 #![cfg(feature = "alloc")]
 
 use approx::assert_ulps_eq;
-use nacfahi::{fit_stat, models::basic::Constant, FitStat, LevenbergMarquardt};
+use nacfahi::{FitStat, LevenbergMarquardt, fit_stat, models::basic::Constant};
 use num_traits::FromPrimitive;
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 
 #[test]
 #[cfg_attr(miri, ignore = "Takes TOO LONG")]

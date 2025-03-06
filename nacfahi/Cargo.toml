@@ -1,7 +1,7 @@
 [package]
 name = "nacfahi"
 version = "0.4.1"
-edition = "2021"
+edition = "2024"
 authors = ["Diachenko Artem", "Artem 34ty804krytp92e239eku@gmail.com"]
 description = "Simpler, but less error-prone API for `levenberg-marquardt` optimization crate"
 documentation = "https://dzuchun.github.io/nacfahi/nacfahi/index.html"

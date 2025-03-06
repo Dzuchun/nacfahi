@@ -1,26 +1,24 @@
 use std::cmp::Ordering;
 
 use proc_macro::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use syn::{
-    parse_macro_input,
-    punctuated::Punctuated,
-    token::{Brace, Bracket, Paren, Pound},
     AngleBracketedGenericArguments, AssocType, Attribute, Block, DataStruct, DeriveInput, Expr,
     ExprArray, ExprCall, ExprMethodCall, ExprPath, FieldPat, FnArg, GenericArgument, GenericParam,
     Generics, Ident, ImplItem, ImplItemFn, ImplItemType, ItemImpl, ItemUse, Local, LocalInit,
     MacroDelimiter, Meta, MetaList, Pat, PatIdent, PatRest, PatStruct, PatTuple, PatTupleStruct,
     PatType, Path, PathArguments, PathSegment, PredicateType, QSelf, ReturnType, Signature, Stmt,
     Token, TraitBound, TraitBoundModifier, Type, TypeImplTrait, TypeParam, TypeParamBound,
-    TypePath, TypeReference, WhereClause, WherePredicate,
+    TypePath, TypeReference, WhereClause, WherePredicate, parse_macro_input,
+    punctuated::Punctuated,
+    token::{Brace, Bracket, Paren, Pound},
 };
 
 fn derive_unit(ident: Ident, scalar: ScalarType) -> TokenStream {
     let fit_entity = fit_model();
-    let generic_param = if let ScalarType::Generic(ident) = &scalar {
-        Some(quote! {< #ident: ::num_traits::Zero >})
-    } else {
-        None
+    let generic_param = match &scalar {
+        ScalarType::Generic(ident) => Some(quote! {< #ident: ::num_traits::Zero >}),
+        ScalarType::Specified(_) => None,
     };
     let scalar_type: Type = scalar.into();
     quote! {
@@ -1476,7 +1474,10 @@ fn parse_scalar(generics: &Generics, attrs: &[Attribute]) -> ScalarType {
         (_, None, Some(specified)) => ScalarType::Specified(specified),
         (_, Some(attr_generic), None) => ScalarType::Generic(attr_generic),
         (Some(scalar_generic), None, None) => ScalarType::Generic(scalar_generic),
-        (_, Some(attr_generic), Some(_)) => panic!("Scalar type should only be specified once; currently, you specify as generic ({}) and exact (whatever is in {} attribute) at the same time.", attr_generic, SPECIFIED_ATTR),
+        (_, Some(attr_generic), Some(_)) => panic!(
+            "Scalar type should only be specified once; currently, you specify as generic ({}) and exact (whatever is in {} attribute) at the same time.",
+            attr_generic, SPECIFIED_ATTR
+        ),
     }
 }
 

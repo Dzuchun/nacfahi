@@ -3,8 +3,8 @@ use generic_array_storage::Conv;
 use num_traits::{Float, FloatConst};
 
 use crate::models::{
-    basic::gaussian::common::{ErrorsFull, ErrorsNone, ErrorsSigma, ErrorsSp},
     FitModel,
+    basic::gaussian::common::{ErrorsFull, ErrorsNone, ErrorsSigma, ErrorsSp},
 };
 
 use super::AsymmetricGenericGaussian;

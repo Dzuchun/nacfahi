@@ -1,9 +1,9 @@
 use core::ops::{Add, Mul, Sub};
 
 use generic_array::{
+    ArrayLength, GenericArray,
     functional::FunctionalSequence,
     sequence::{Concat, Split},
-    ArrayLength, GenericArray,
 };
 use generic_array_storage::Conv;
 use typenum::Sum;

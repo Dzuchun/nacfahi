@@ -1,6 +1,6 @@
 use core::ops::{Mul, Sub};
 
-use generic_array::{functional::FunctionalSequence, ArrayLength, GenericArray, IntoArrayLength};
+use generic_array::{ArrayLength, GenericArray, IntoArrayLength, functional::FunctionalSequence};
 use generic_array_storage::Conv;
 use num_traits::{Float, One, Pow};
 use typenum::{U0, U1, U2};

@@ -1,7 +1,7 @@
-use generic_array::{functional::FunctionalSequence, GenericArray};
+use generic_array::{GenericArray, functional::FunctionalSequence};
 use generic_array_storage::{Conv, GenericArrayStorage, GenericMatrix};
 use levenberg_marquardt::LeastSquaresProblem;
-use nalgebra::{allocator::Allocator, ComplexField, DefaultAllocator, Dyn, OMatrix};
+use nalgebra::{ComplexField, DefaultAllocator, Dyn, OMatrix, allocator::Allocator};
 
 use crate::models::FitModel;
 
@@ -19,7 +19,6 @@ where
     DefaultAllocator: Allocator<<Model::ParamCount as Conv>::Nalg, nalgebra::U1>
         + Allocator<Dyn>
         + Allocator<Dyn, <Model::ParamCount as Conv>::Nalg>,
-
     Model::Scalar: nalgebra::Scalar + ComplexField + Copy,
     Weights: Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
 {

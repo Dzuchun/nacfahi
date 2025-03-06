@@ -86,10 +86,10 @@ pub struct AsymmetricGenericGaussian<Scalar, const FIT_SIGMA: bool, const FIT_S_
 }
 
 impl<
-        Scalar: Clone + One + Zero + Add<Output = Scalar> + Mul<Output = Scalar> + PartialOrd,
-        const FIT_SIGMA: bool,
-        const FIT_S_P: bool,
-    > AsymmetricGenericGaussian<Scalar, FIT_SIGMA, FIT_S_P>
+    Scalar: Clone + One + Zero + Add<Output = Scalar> + Mul<Output = Scalar> + PartialOrd,
+    const FIT_SIGMA: bool,
+    const FIT_S_P: bool,
+> AsymmetricGenericGaussian<Scalar, FIT_SIGMA, FIT_S_P>
 {
     #[inline]
     fn ctx<'lt>(&'lt self, x: &'lt Scalar) -> XCtx<'lt, Scalar> {

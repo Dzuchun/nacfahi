@@ -1,6 +1,6 @@
 use core::ops::{Add, Mul};
 
-use generic_array::{sequence::GenericSequence, GenericArray, IntoArrayLength};
+use generic_array::{GenericArray, IntoArrayLength, sequence::GenericSequence};
 use generic_array_storage::Conv;
 use num_traits::{One, Zero};
 use typenum::Const;
@@ -14,10 +14,8 @@ pub struct Polynomial<const ORDER: usize, Scalar> {
     pub params: [Scalar; ORDER],
 }
 
-impl<
-        const ORDER: usize,
-        Scalar: Clone + Zero + One + Add<Output = Scalar> + Mul<Output = Scalar>,
-    > FitModel for Polynomial<ORDER, Scalar>
+impl<const ORDER: usize, Scalar: Clone + Zero + One + Add<Output = Scalar> + Mul<Output = Scalar>>
+    FitModel for Polynomial<ORDER, Scalar>
 where
     Const<ORDER>: IntoArrayLength,
 {
@@ -61,10 +59,8 @@ where
     }
 }
 
-impl<
-        const ORDER: usize,
-        Scalar: Clone + Zero + One + Add<Output = Scalar> + Mul<Output = Scalar>,
-    > FitModelXDeriv for Polynomial<ORDER, Scalar>
+impl<const ORDER: usize, Scalar: Clone + Zero + One + Add<Output = Scalar> + Mul<Output = Scalar>>
+    FitModelXDeriv for Polynomial<ORDER, Scalar>
 where
     Self: FitModel<Scalar = Scalar, ParamCount = Const<ORDER>>,
 {

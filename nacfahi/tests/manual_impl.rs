@@ -2,8 +2,8 @@
 
 use generic_array::sequence::{Concat, Split};
 use nacfahi::models::{
-    basic::{Exponent, Gaussian, Linear},
     FitModel,
+    basic::{Exponent, Gaussian, Linear},
 };
 
 #[allow(

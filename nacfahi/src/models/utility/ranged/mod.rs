@@ -1,6 +1,6 @@
 use core::ops::RangeBounds;
 
-use generic_array::{sequence::GenericSequence, GenericArray};
+use generic_array::{GenericArray, sequence::GenericSequence};
 use generic_array_storage::Conv;
 use num_traits::Zero;
 
