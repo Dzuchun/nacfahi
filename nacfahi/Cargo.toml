@@ -14,11 +14,11 @@ exclude = ["tests", "**/tests.rs", "README.md"]
 
 [dependencies]
 generic-array = { version = "1.2.0", default-features = false }
-generic-array-storage = "0.2.0"
+generic-array-storage = "0.4.0"
 levenberg-marquardt = "0.14.0"
 nalgebra = { version = "0.33.2", default-features = false }
 num-traits = { version = "0.2.19", default-features = false }
-typenum = { version = "1.17.0", default-features = false, features = ["no_std"] }
+typenum = { version = "1.18.0", default-features = false, features = ["no_std"] }
 nacfahi-derive = "0.3.7"
 simba = { version = "0.9.0", default-features = false, features = [ "libm" ] }
 # ^^^ `simba` should still use std implementations, if available
@@ -34,7 +34,7 @@ workspace = true
 [dev-dependencies]
 approx = "0.5.1"
 nalgebra = { version = "0.33.2", features = ["macros"] }
-rand = "0.8.5"
+rand = "0.9.0"
 static_assertions = "1.1.0"
 
 [package.metadata.docs.rs]
