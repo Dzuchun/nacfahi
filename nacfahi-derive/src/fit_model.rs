@@ -1413,7 +1413,7 @@ impl From<ScalarType> for Type {
                     }]),
                 },
             }),
-            ScalarType::Specified(typ) => typ,
+            ScalarType::Specified(r#type) => r#type,
         }
     }
 }
