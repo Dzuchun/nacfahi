@@ -5,6 +5,7 @@ use nacfahi::{
     models::{FitModelErrors, LevMarModel, basic::Polynomial},
 };
 
+#[cfg(feature = "num-traits")]
 pub fn fit_err_generic<
     const ORDER: usize,
     Scalar: num_traits::Zero,

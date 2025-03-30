@@ -1,6 +1,8 @@
 #![allow(missing_docs, missing_debug_implementations)]
+#![cfg(all(feature = "typenum", feature = "generic-array"))]
+// ^^ ignore these, it's specific to this repo setup
 
-use generic_array::sequence::{Concat, Split};
+use generic_array::sequence::{Concat, Split}; // traits from `generic_array` for `split` and `concat` calls
 use nacfahi::models::{
     FitModel,
     basic::{Exponent, Gaussian, Linear},
@@ -13,8 +15,10 @@ pub struct CustomModel {
 }
 
 impl FitModel for CustomModel {
-    type Scalar = f64;
+    type Scalar = f64; // Type model act on. Potentially can be anything, that's up to you to decide.
     type ParamCount = typenum::U13;
+    // Total parameter count:   ^^
+    // If rest of the trait is implemented in idiomatic way, compiler will tell you in case you counted wrong
 
     fn evaluate(&self, x: &f64) -> f64 {
         self.linear.evaluate(x) + self.exponent.evaluate(x) + self.peaks.evaluate(x)

@@ -36,6 +36,19 @@ pub use levenberg_marquardt::TerminationReason;
 /// Fitting models
 pub mod models;
 
+/// These are items required for macro to function
+#[doc(hidden)]
+pub mod __procmacro {
+    pub use crate::models::FitModel;
+    pub use generic_array::{
+        ArrayLength, GenericArray,
+        sequence::{Concat, Split},
+    };
+    pub use generic_array_storage::Conv;
+    pub use num_traits::Zero;
+    pub use typenum::UTerm;
+}
+
 #[doc(hidden)]
 mod const_problem;
 

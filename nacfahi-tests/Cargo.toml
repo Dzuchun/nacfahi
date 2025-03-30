@@ -1,0 +1,26 @@
+[package]
+name = "nacfahi-tests"
+version = "0.0.0"
+edition = "2024"
+description = "Crate containing tests for nacfahi. Intended to ensure that exported macros are functioning properly in any environment"
+
+[dependencies]
+nacfahi = { path ="../nacfahi" }
+static_assertions = "1.1.0"
+approx = "0.5.1"
+rand = "0.9.0"
+typenum = { version = "1.18.0", optional = true }
+generic-array = { version = "1.2.0", optional = true }
+nalgebra = { version = "0.33.2", optional = true }
+num-traits = { version = "0.2.19", optional = true }
+
+[features]
+default = ["alloc", "typenum", "generic-array", "nalgebra", "num-traits"]
+alloc = ["nacfahi/alloc"]
+typenum = ["dep:typenum"]
+generic-array = ["dep:generic-array"]
+nalgebra = ["dep:nalgebra"]
+num-traits = ["dep:num-traits"]
+
+[lints]
+workspace = true

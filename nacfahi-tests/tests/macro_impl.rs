@@ -6,6 +6,7 @@ use nacfahi::models::{
 };
 use static_assertions::{assert_impl_all, assert_not_impl_all};
 
+#[cfg(feature = "num-traits")]
 use num_traits::{Float, FloatConst};
 
 #[derive(FitModelSum)]
@@ -55,6 +56,7 @@ assert_impl_all!(WithBackground<f64, Gaussian<f64>>: FitModel<Scalar =f64>);
 assert_impl_all!(WithBackground<f32, Exponent<f32>>: FitModel<Scalar =f32>);
 assert_not_impl_all!(WithBackground<f32, Exponent<f64>>: FitModel);
 
+#[cfg(feature = "num-traits")]
 #[derive(FitModelSum)]
 #[scalar_generic(T)]
 pub struct Multipeak<T: Float + FloatConst + core::iter::Sum, const N: usize, BG> {
@@ -62,12 +64,17 @@ pub struct Multipeak<T: Float + FloatConst + core::iter::Sum, const N: usize, BG
     signal: [Gaussian<T>; N],
 }
 
+#[cfg(feature = "num-traits")]
 assert_impl_all!(Multipeak<f64, 0, Linear<f64>>: FitModel<Scalar =f64>);
+#[cfg(feature = "num-traits")]
 assert_not_impl_all!(Multipeak<f64, 0, Linear<f32>>: FitModel);
 
+#[cfg(feature = "num-traits")]
 assert_impl_all!(Multipeak<f64, 10, Linear<f64>>: FitModel<Scalar =f64>);
+#[cfg(feature = "num-traits")]
 assert_not_impl_all!(Multipeak<f64, 10, Linear<f32>>: FitModel);
 
+#[cfg(feature = "num-traits")]
 #[derive(FitModelSum)]
 pub struct BiMulti<
     Scalar: Float + FloatConst + core::iter::Sum,
@@ -78,8 +85,11 @@ pub struct BiMulti<
     peaks: [Gaussian<Scalar>; PEAKS],
 }
 
+#[cfg(feature = "num-traits")]
 assert_impl_all!(BiMulti<f64, 0, 0>: FitModel<Scalar = f64>);
+#[cfg(feature = "num-traits")]
 assert_impl_all!(BiMulti<f64, 1, 5>: FitModel<Scalar = f64>);
+#[cfg(feature = "num-traits")]
 assert_impl_all!(BiMulti<f64, 12, 5>: FitModel<Scalar =f64>);
 
 #[derive(FitModelSum)]

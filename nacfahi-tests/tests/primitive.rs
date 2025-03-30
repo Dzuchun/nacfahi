@@ -53,6 +53,7 @@ fn slice() {
     assert_ulps_eq!(line.b, 1.0);
 }
 
+#[cfg(feature = "nalgebra")]
 #[test]
 fn matrix() {
     use approx::assert_ulps_eq;
@@ -80,6 +81,7 @@ fn matrix() {
     assert_ulps_eq!(line.b, 1.0);
 }
 
+#[cfg(feature = "nalgebra")]
 #[test]
 fn matrix_view() {
     use approx::assert_ulps_eq;
@@ -108,7 +110,7 @@ fn matrix_view() {
 }
 
 #[test]
-#[cfg(feature = "alloc")]
+#[cfg(all(feature = "nalgebra", feature = "alloc"))]
 fn dyn_matrix() {
     use approx::assert_ulps_eq;
     use nacfahi::{models::basic::Linear, *};
@@ -135,6 +137,7 @@ fn dyn_matrix() {
     assert_ulps_eq!(line.b, 1.0);
 }
 
+#[cfg(feature = "generic-array")]
 #[test]
 fn generic_array() {
     use approx::assert_ulps_eq;
