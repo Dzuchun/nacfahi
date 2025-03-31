@@ -1,16 +1,17 @@
-#![allow(missing_docs, unused_variables)]
+#![allow(missing_docs)]
 
 use core::f64;
 use std::ops::RangeTo;
 
 use approx::{assert_ulps_eq, assert_ulps_ne};
-use nacfahi::fit;
-use nacfahi::models::{
-    FitModel,
-    basic::{Exponent, Gaussian, Linear},
-    utility::{CompositionExt, Fixed, LnMap, Ranged, model_map},
+use nacfahi::{
+    fit,
+    models::{
+        FitModel,
+        basic::{Exponent, Gaussian, Linear},
+        utility::{CompositionExt, Fixed, LnMap, Ranged, model_map},
+    },
 };
-use num_traits::Float;
 use static_assertions::assert_impl_all;
 
 #[test]
@@ -25,8 +26,8 @@ fn sharp_exponent() {
     };
 
     // data consisting of exponential data at x < 0, and some garbage at x > 0
-    let expected_a = -5.0;
-    let expected_b = 2.5;
+    let expected_a = -5.0f64;
+    let expected_b = 2.5f64;
     let x = [
         -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0,
     ];
@@ -64,8 +65,8 @@ fn sharp_exponent() {
 #[test]
 fn fit_log() {
     // some exponential data
-    let expected_a = 3.0;
-    let expected_b = 0.5;
+    let expected_a = 3.0f64;
+    let expected_b = 0.5f64;
     let x = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0];
     let y = x.map(|x| expected_a * (x * expected_b).exp());
     let linear_y = y.map(f64::ln);
@@ -136,6 +137,7 @@ fn fixed() {
     let model = Linear { a: 0.0, b: 0.0 };
 
     // make it fixed
+    #[allow(unused_variables)]
     let fixed = Fixed(model);
 
     // fit!(fixed, [1.0, 2.0, 3.0], [-1.0, 5.0, -6.0]); // <-- does not compile!

@@ -7,7 +7,7 @@ use core::ops::Sub;
 #[cfg(feature = "alloc")]
 use dyn_problem::DynOptimizationProblem;
 use generic_array::{ArrayLength, GenericArray};
-use models::{FitModel, FitModelErrors};
+use models::{FitModel, FitModelErrors, LevMarModel};
 
 use const_problem::ConstOptimizationProblem;
 use generic_array_storage::{Conv, GenericArrayStorage, GenericMatrix, GenericMatrixFromExt};
@@ -241,10 +241,7 @@ type DataPoints<Data> = <<Data as AsMatrixView>::Points as CreateProblem>::Nalg;
 /// A helper trait to simplify type bounds for a user. You probably should no see this.
 ///
 /// In case you do get a "type does not implement" type or error with this trait... I'm sorry.
-pub trait FitBound<Model: FitModel, X, Y = X>
-where
-    Model::Scalar: RealField,
-{
+pub trait FitBound<Model: LevMarModel, X, Y = X> {
     #[doc(hidden)]
     type Points: Dim;
     #[doc(hidden)]
@@ -311,9 +308,8 @@ where
 /// A helper trait to simplify type bounds for a user. You probably should no see this.
 ///
 /// In case you do get a "type does not implement" type or error with this trait... I'm sorry.
-pub trait FitErrBound<Model: FitModelErrors, X, Y = X>: FitBound<Model, X, Y>
-where
-    Model::Scalar: RealField,
+pub trait FitErrBound<Model: FitModelErrors + LevMarModel, X, Y = X>:
+    FitBound<Model, X, Y>
 {
     #[doc(hidden)]
     fn produce_stat(
@@ -434,6 +430,7 @@ macro_rules! fit {
 macro_rules! fit {
     ($model:expr_2021, $x:expr_2021, $y:expr_2021 $(, $par_name:ident = $par_value:expr_2021) *) => {{
         use ::nacfahi::default_weights;
+        #[allow(unused_mut)]
         let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
         let model = $model;
         let x = $x;
@@ -470,8 +467,7 @@ pub fn fit<Model, X, Y>(
     weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
 ) -> MinimizationReport<Model::Scalar>
 where
-    Model: FitModel,
-    Model::Scalar: RealField,
+    Model: FitModel + LevMarModel,
     FitterUnit: FitBound<Model, X, Y>,
 {
     FitterUnit::fit(minimizer, model, x, y, weights)
@@ -479,10 +475,7 @@ where
 
 /// Result of [`function@fit_stat`].
 #[derive(Debug)]
-pub struct FitStat<Model: FitModelErrors>
-where
-    Model::Scalar: RealField,
-{
+pub struct FitStat<Model: FitModelErrors + LevMarModel> {
     /// Report resulted from the fit
     pub report: MinimizationReport<Model::Scalar>,
     /// $\chi^{2}/\test{dof}$ criteria. Should be about 1 for correct fit.
@@ -514,6 +507,7 @@ macro_rules! fit_stat {
 macro_rules! fit_stat {
     ($model:expr_2021, $x:expr_2021, $y:expr_2021 $(, $par_name:ident = $par_value:expr_2021) *) => {{
         use ::nacfahi::default_weights;
+        #[allow(unused_mut)]
         let mut minimizer = &::nacfahi::LevenbergMarquardt::new();
         let model = $model;
         let x = $x;
@@ -559,8 +553,7 @@ pub fn fit_stat<Model, X, Y>(
     weights: impl Fn(Model::Scalar, Model::Scalar) -> Model::Scalar,
 ) -> FitStat<Model>
 where
-    Model: FitModelErrors,
-    Model::Scalar: RealField,
+    Model: FitModelErrors + LevMarModel,
     FitterUnit: FitErrBound<Model, X, Y>,
 {
     let report = FitterUnit::fit(minimizer, model.borrow_mut(), &x, &y, weights);

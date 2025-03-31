@@ -73,6 +73,18 @@ pub trait FitModel {
     ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>;
 }
 
+/// Helper trait for user code to avoid dependency on `nalgebra` and `num_traits` required to use `levenberg_marquardt`. If need be, you can ignore it, and specify corresponding bounds manually (as there's a blanket impl for it, see below).
+pub trait LevMarModel: FitModel<Scalar = Self::RealScalar> {
+    #[doc(hidden)]
+    type RealScalar: nalgebra::RealField + num_traits::Float;
+}
+impl<M: FitModel> LevMarModel for M
+where
+    M::Scalar: nalgebra::RealField + num_traits::Float,
+{
+    type RealScalar = M::Scalar;
+}
+
 /// Defines model having derivative over the `x` variable.
 ///
 /// This trait is meant to extend [`FitModel`] to allow usage of [`Composition`](utility::Composition) model, as it requires derivative over `x` for outer model.

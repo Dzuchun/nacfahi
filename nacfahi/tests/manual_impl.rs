@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, missing_debug_implementations)]
 
 use generic_array::sequence::{Concat, Split};
 use nacfahi::models::{
@@ -6,11 +6,7 @@ use nacfahi::models::{
     basic::{Exponent, Gaussian, Linear},
 };
 
-#[allow(
-    dead_code,
-    reason = "It's a test struct, just to show implementation example"
-)]
-struct CustomModel {
+pub struct CustomModel {
     linear: Linear<f64>,
     exponent: Exponent<f64>,
     peaks: [Gaussian<f64>; 3],
@@ -18,7 +14,7 @@ struct CustomModel {
 
 impl FitModel for CustomModel {
     type Scalar = f64;
-    type ParamCount = typenum::U13; // how many parameters, exactly?
+    type ParamCount = typenum::U13;
 
     fn evaluate(&self, x: &f64) -> f64 {
         self.linear.evaluate(x) + self.exponent.evaluate(x) + self.peaks.evaluate(x)
@@ -32,8 +28,8 @@ impl FitModel for CustomModel {
     }
 
     fn set_params(&mut self, new_params: generic_array::GenericArray<f64, Self::ParamCount>) {
-        let (linear, rest) = new_params.split();
-        let (exponent, peaks) = rest.split();
+        let (peaks, rest) = new_params.split();
+        let (linear, exponent) = rest.split();
 
         self.linear.set_params(linear);
         self.exponent.set_params(exponent);

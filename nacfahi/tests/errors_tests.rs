@@ -3,8 +3,7 @@
 
 use approx::assert_ulps_eq;
 use nacfahi::{FitStat, LevenbergMarquardt, fit_stat, models::basic::Constant};
-use num_traits::FromPrimitive;
-use rand::{Rng, thread_rng};
+use rand::{Rng, rng};
 
 #[test]
 #[cfg_attr(miri, ignore = "Takes TOO LONG")]
@@ -13,15 +12,16 @@ fn constant_stdev() {
     const SAMPLE_SIZE: usize = 10_000;
     #[allow(clippy::large_stack_arrays, reason = "It's a test!")]
     let x = [0.0f64; SAMPLE_SIZE];
-    let y = core::array::from_fn::<f64, SAMPLE_SIZE, _>(|_| thread_rng().gen_range(0.0..=5.0));
+    let y = core::array::from_fn::<f64, SAMPLE_SIZE, _>(|_| rng().random_range(0.0..=5.0));
 
     // compute expected values
-    let sample_size = f64::from_usize(SAMPLE_SIZE).unwrap();
+    #[allow(clippy::cast_precision_loss)]
+    let sample_size = SAMPLE_SIZE as f64;
     let y_mean = y.iter().sum::<f64>() / sample_size;
     let y_err = f64::sqrt(
         y.iter()
             .map(|y_i| y_i - y_mean)
-            .map(|y_dev| y_dev.powi(2))
+            .map(|y_dev| y_dev * y_dev)
             .sum::<f64>()
             / (sample_size)
             / (sample_size - 1.0),

@@ -1,7 +1,5 @@
 #![allow(missing_docs)]
 
-use generic_array::GenericArray;
-
 #[test]
 fn array() {
     use approx::assert_ulps_eq;
@@ -140,6 +138,7 @@ fn dyn_matrix() {
 #[test]
 fn generic_array() {
     use approx::assert_ulps_eq;
+    use generic_array::GenericArray;
     use nacfahi::{models::basic::Linear, *};
 
     // some data, presumably 2x + 1

@@ -48,7 +48,6 @@ fn custom_lavmar() {
 #[test]
 fn custom_weight() {
     use nacfahi::{models::basic::Linear, *};
-    use num_traits::Pow;
 
     // some data, presumably 2x + 1
     let x = [1.0, 2.0, 3.0, 4.0, 5.0];
@@ -58,7 +57,7 @@ fn custom_weight() {
     let mut line = Linear { a: 0.0, b: 0.0 };
 
     // custom weight function, really breaking the fit
-    let weight = |x: f64, y: f64| x.pow(206_265.0) % y / y.ln();
+    let weight = |x: f64, y: f64| x.powi(206_265) % y / y.ln();
 
     // proceed to fail the fit, because omg what is this weight function
     let report = fit!(&mut line, x, y, weights = weight);
@@ -73,7 +72,6 @@ fn custom_weight() {
 #[test]
 fn custom_lavmar_weight() {
     use nacfahi::{models::basic::Linear, *};
-    use num_traits::Pow;
 
     // some data, presumably 2x + 1
     let x = [1.0, 2.0, 3.0, 4.0, 5.0];
@@ -86,7 +84,7 @@ fn custom_lavmar_weight() {
     let lavmar = LevenbergMarquardt::new().with_patience(1);
 
     // custom weight function, really breaking the fit
-    let weight = |x: f64, y: f64| x.pow(206_265.0) % y / y.ln();
+    let weight = |x: f64, y: f64| x.powi(206_265) % y / y.ln();
 
     let _report = fit!(&mut line, x, y, weights = weight, minimizer = lavmar);
 
