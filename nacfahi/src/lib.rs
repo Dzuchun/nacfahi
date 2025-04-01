@@ -24,13 +24,12 @@ use typenum::Unsigned;
 use num_traits::{Float, NumCast};
 
 /// Re-export. See [`LevenbergMarquardt`](https://docs.rs/levenberg-marquardt/latest/levenberg_marquardt/struct.LevenbergMarquardt.html)
-///
 pub use levenberg_marquardt::LevenbergMarquardt;
+
 /// Re-export. See [`MinimizationReport`](https://docs.rs/levenberg-marquardt/latest/levenberg_marquardt/struct.MinimizationReport.html)
-///
 pub use levenberg_marquardt::MinimizationReport;
+
 /// Re-export. See [`TerminationReason`](https://docs.rs/levenberg-marquardt/latest/levenberg_marquardt/enum.TerminationReason.html)
-///
 pub use levenberg_marquardt::TerminationReason;
 
 /// Fitting models
@@ -245,7 +244,6 @@ impl CreateProblem for Dyn {
 }
 
 /// A helper unit type that is never constructed, and only used in type bounds.
-#[doc(hidden)]
 #[allow(missing_debug_implementations)]
 pub struct FitterUnit(());
 
@@ -557,7 +555,7 @@ macro_rules! fit_stat {
 /// - If data points count can't be converted to scalar type
 ///
 /// **TIP**: The `FitDimensionsBound` is an unfortunate outcome to strict type system. In case you deal with generic code, just put the `fit!` statement down, and add the bound you seemingly violate - you **should** be good after that.
-#[must_use = "Covariance matrix are the only point to call this function specifically"]
+#[must_use = "Fit statistics are the only point to call this function specifically"]
 pub fn fit_stat<Model, X, Y>(
     model: &mut Model,
     x: X,
