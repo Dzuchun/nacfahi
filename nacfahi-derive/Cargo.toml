@@ -7,7 +7,7 @@ description = "Derive proc-macro for `nacfahi`"
 documentation = "https://dzuchun.github.io/nacfahi/nacfahi/index.html"
 readme = "../README.md"
 repository = "https://github.com/Dzuchun/nacfahi"
-license = "MIT"
+license = "LGPL-3.0-or-later"
 keywords = ["proc-macro"]
 categories = []
 
