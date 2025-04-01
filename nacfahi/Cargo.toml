@@ -10,7 +10,7 @@ repository = "https://github.com/Dzuchun/nacfahi"
 license = "LGPL-3.0-or-later"
 keywords = ["api", "no_std", "no-std", "math", "statistics"]
 categories = ["mathematics", "no-std"]
-exclude = ["tests", "**/tests.rs", "README.md"]
+exclude = ["README.md"]
 
 [dependencies]
 generic-array = { version = "1.2.0", default-features = false }
