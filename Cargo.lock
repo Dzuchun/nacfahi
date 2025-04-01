@@ -109,7 +109,7 @@ dependencies = [
  "generic-array",
  "generic-array-storage",
  "levenberg-marquardt",
- "nacfahi-derive 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nacfahi-derive 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra",
  "num-traits",
  "rand",
@@ -120,7 +120,7 @@ dependencies = [
 
 [[package]]
 name = "nacfahi-derive"
-version = "0.4.0"
+version = "0.4.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -129,13 +129,27 @@ dependencies = [
 
 [[package]]
 name = "nacfahi-derive"
-version = "0.4.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62c48e4eaaa4bbfd4d62d825aa8668ec0154fc82df482b7b682c09cfc7c07414"
+checksum = "f1d96d1edb9e5d9a2f1338d80d881ead52a37b8bebdd13e7dfaec4b1028e2400"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "nacfahi-tests"
+version = "0.0.0"
+dependencies = [
+ "approx",
+ "generic-array",
+ "nacfahi",
+ "nalgebra",
+ "num-traits",
+ "rand",
+ "static_assertions",
+ "typenum",
 ]
 
 [[package]]
