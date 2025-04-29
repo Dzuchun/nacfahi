@@ -3,12 +3,12 @@ use core::{
     ops::{Div, Mul},
 };
 
+use crate::{Conv, GenericArray};
 use generic_array::{
-    ArrayLength, GenericArray,
+    ArrayLength,
     functional::FunctionalSequence,
     sequence::{Flatten, Unflatten},
 };
-use generic_array_storage::Conv;
 use typenum::{Prod, ToUInt};
 
 /// Basic building blocks for the models.
@@ -32,10 +32,12 @@ pub trait FitModel {
 
     /// Type representing number of parameters.
     ///
-    /// **Hint**: [`typenum`]`::{U1, U2, ..}` types would most likely work for you.
+    /// **Hint**: `nacfahi::{U<1>, U<2>, ..}` types would most likely work for you.
+    ///
+    /// (these are a [`typenum`] reexport)
     ///
     /// [`typenum`]: https://docs.rs/typenum/latest/typenum/
-    type ParamCount: generic_array_storage::Conv;
+    type ParamCount: Conv;
 
     /// Computes model value for supplied `x` value and current parameters.
     fn evaluate(&self, x: &Self::Scalar) -> Self::Scalar;
@@ -46,7 +48,7 @@ pub trait FitModel {
     fn jacobian(
         &self,
         x: &Self::Scalar,
-    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>;
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>>;
 
     /// Sets model parameters to ones contained in a generic array
     ///
@@ -59,10 +61,7 @@ pub trait FitModel {
     /// ```
     fn set_params(
         &mut self,
-        new_params: GenericArray<
-            Self::Scalar,
-            <Self::ParamCount as generic_array_storage::Conv>::TNum,
-        >,
+        new_params: crate::GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     );
 
     /// Returns current values of model params.
@@ -70,7 +69,7 @@ pub trait FitModel {
     /// **Hint**: return type allows you to return core Rust array, as long as it's size is correct.
     fn get_params(
         &self,
-    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>;
+    ) -> impl Into<crate::GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>>;
 }
 
 /// Helper trait for user code to avoid dependency on `nalgebra` and `num_traits` required to use `levenberg_marquardt`. If need be, you can ignore it, and specify corresponding bounds manually (as there's a blanket impl for it, see below).
@@ -125,8 +124,7 @@ where
     fn jacobian(
         &self,
         x: &Self::Scalar,
-    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         let s: &Model = self;
         Model::jacobian(s, x)
     }
@@ -134,10 +132,7 @@ where
     #[inline]
     fn set_params(
         &mut self,
-        new_params: GenericArray<
-            Self::Scalar,
-            <Self::ParamCount as generic_array_storage::Conv>::TNum,
-        >,
+        new_params: GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) {
         let s: &mut Model = self;
         Model::set_params(s, new_params);
@@ -146,8 +141,7 @@ where
     #[inline]
     fn get_params(
         &self,
-    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as generic_array_storage::Conv>::TNum>>
-    {
+    ) -> impl Into<GenericArray<Self::Scalar, <Self::ParamCount as Conv>::TNum>> {
         let s: &Model = self;
         Model::get_params(s)
     }
@@ -165,10 +159,7 @@ impl<Model: FitModelErrors> FitModelErrors for &'_ mut Model {
 
     #[inline]
     fn with_errors(
-        errors: GenericArray<
-            Model::Scalar,
-            <Self::ParamCount as generic_array_storage::Conv>::TNum,
-        >,
+        errors: GenericArray<Model::Scalar, <Self::ParamCount as Conv>::TNum>,
     ) -> Self::OwnedModel {
         <Model as FitModelErrors>::with_errors(errors)
     }

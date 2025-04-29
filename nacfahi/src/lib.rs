@@ -6,11 +6,11 @@ use core::ops::Sub;
 
 #[cfg(feature = "alloc")]
 use dyn_problem::DynOptimizationProblem;
-use generic_array::{ArrayLength, GenericArray};
+use generic_array::ArrayLength;
 use models::{FitModel, FitModelErrors, LevMarModel};
 
 use const_problem::ConstOptimizationProblem;
-use generic_array_storage::{Conv, GenericArrayStorage, GenericMatrix, GenericMatrixFromExt};
+use generic_array_storage::{GenericArrayStorage, GenericMatrix, GenericMatrixFromExt};
 use levenberg_marquardt::LeastSquaresProblem;
 #[cfg(feature = "alloc")]
 use nalgebra::Dyn;
@@ -22,6 +22,18 @@ use nalgebra::{Matrix, OMatrix};
 use typenum::Unsigned;
 
 use num_traits::{Float, NumCast};
+
+/// Re-export from `typenum`
+pub type U<const N: usize> = typenum::generic_const_mappings::U<N>;
+
+/// Re-exports from `generic_array`
+pub use generic_array::{
+    GenericArray,
+    sequence::{Concat, Split},
+};
+
+/// Re-export from `generic_array_storage`
+pub use generic_array_storage::Conv;
 
 /// Re-export. See [`LevenbergMarquardt`](https://docs.rs/levenberg-marquardt/latest/levenberg_marquardt/struct.LevenbergMarquardt.html)
 pub use levenberg_marquardt::LevenbergMarquardt;
