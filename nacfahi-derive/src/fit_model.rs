@@ -9,7 +9,7 @@ use syn::{
     Attribute, DataStruct, DeriveInput, ExprPath, FieldsNamed, FieldsUnnamed, GenericParam,
     Generics, Ident, ItemImpl, MacroDelimiter, Meta, MetaList, Path, PathArguments, PathSegment,
     PredicateLifetime, PredicateType, Stmt, Token, Type, TypeParam, TypePath, WhereClause,
-    WherePredicate, parse_macro_input, parse_quote_spanned, spanned::Spanned,
+    WherePredicate, parse_macro_input, parse_quote, parse_quote_spanned, spanned::Spanned,
 };
 
 macro_rules! procmacro_item {
@@ -110,7 +110,7 @@ fn count_bounds(
     let tfirst: Type = parse_quote_spanned! { first.span() => < #first as #conv >::TNum };
     let inner_type: Rc<Cell<Option<Type>>> = Rc::new(Cell::new(Some(tfirst.clone())));
     let uterm = UTerm();
-    core::iter::once(parse_quote_spanned! {first.span() => #tfirst: ::core::ops::Sub< #tfirst, Output = #uterm > })
+    core::iter::once(parse_quote_spanned! {first.span() => #tfirst: ::core::ops::Sub< #uterm, Output = #tfirst > })
     .chain({
         let inner_type = Rc::clone(&inner_type);
         let conv = conv.clone();
@@ -120,7 +120,7 @@ fn count_bounds(
             let out = [
                 parse_quote_spanned!{it.span() => #t: #conv },
                 parse_quote_spanned!{t.span() => #it: ::core::ops::Add< #tconv > },
-                parse_quote_spanned!{t.span() => < #it as ::core::ops::Add< #tconv > >::Output: ::core::ops::Sub< #tconv, Output = #it > + #array_len }
+                parse_quote_spanned!{t.span() => < #it as ::core::ops::Add< #tconv > >::Output: ::core::ops::Sub< #it, Output = #tconv > + #array_len }
             ];
 
             inner_type.set(Some( parse_quote_spanned! {t.span() => < #it as ::core::ops::Add< #tconv > >::Output }));
@@ -219,6 +219,25 @@ fn set_params_body(
     types: &[Type],
     destruction_syntax: &Stmt,
 ) -> impl IntoIterator<Item = Stmt> {
+    let conv = Conv();
+    let model_to_tnum = move |ty: &Type| -> Type {
+        let params = model_params(ty);
+        parse_quote!( <#params as #conv>::TNum )
+    };
+    let mut rest_counts = {
+        let mut types = types.iter();
+        let mut rest_counts = Vec::<Type>::with_capacity(types.len());
+        let uterm = UTerm();
+        rest_counts.push(parse_quote!( #uterm ));
+        rest_counts.push(model_to_tnum(types.next().unwrap()));
+        for _ in (0..idents.len()).skip(2) {
+            let prev = rest_counts.last().unwrap();
+            let this = model_to_tnum(types.next().unwrap());
+            rest_counts.push(parse_quote!( <#prev as ::core::ops::Add < #this>>::Output ));
+        }
+        rest_counts
+    };
+    let generic_array = GenericArray();
     let split = Split();
     [
         ::syn::parse_quote!( use #split; ),
@@ -226,14 +245,16 @@ fn set_params_body(
         destruction_syntax.clone(),
     ]
     .into_iter()
-    .chain(zip(idents, types).rev().flat_map(|(id, ty)| {
+    .chain(zip(idents, types).rev().flat_map(move|(id, ty)| {
         let model_set_params = model_set_params(ty);
+        let this_count = model_to_tnum(ty);
+        let rest_count = rest_counts.pop().unwrap();
         [
-            parse_quote_spanned!(ty.span() => let (this, rest) = rest.split(); ),
+            parse_quote_spanned!(ty.span() => let (rest, this): (#generic_array::<_, #rest_count>, #generic_array::<_, #this_count>) = rest.split(); ),
             parse_quote_spanned!(ty.span() => #model_set_params (#id, this); ),
         ]
     }))
-    .chain(core::iter::once(::syn::parse_quote!(let _ = rest;)))
+    .chain(core::iter::once( parse_quote!(let _ = rest;)))
 }
 
 fn get_params_body(
@@ -390,6 +411,7 @@ fn derive_inner(
             }
 
             #[inline]
+            #[allow(clippy::type_complexity)]
             fn set_params(&mut self, new_params: #generic_array < Self::Scalar, < Self::ParamCount as #conv >::TNum >) {
                 #(#set_params)*
             }
